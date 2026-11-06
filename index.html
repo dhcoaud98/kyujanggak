@@ -39,7 +39,8 @@ button{cursor:pointer}
 .wrap{max-width:760px;margin:0 auto;padding:20px 16px 64px;display:flex;flex-direction:column;gap:20px}
 
 header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:14px}
-.brand{font-family:var(--display);font-size:1.35rem;letter-spacing:.04em}
+.brand{font-family:var(--display);font-size:1.35rem;letter-spacing:.04em;background:none;border:0;color:var(--ink);padding:4px 0;display:flex;align-items:center;gap:8px;cursor:pointer;text-align:left}
+.brand:hover span{text-decoration:underline;text-underline-offset:4px}
 .stats{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;font-size:.9rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .stats b{color:var(--ink);font-weight:700}
 .rooms{display:flex;gap:6px}
@@ -121,6 +122,7 @@ h2{font-family:var(--display);font-weight:400;font-size:1.8rem;margin:0;text-wra
 .dbar{height:4px;background:var(--line)}
 .dbar span{display:block;height:100%;background:var(--green)}
 
+.btn.small{padding:6px 14px;font-size:.88rem}
 .save{white-space:nowrap;font-size:.8rem;border:1px solid var(--line);padding:0 8px;color:var(--muted)}
 .card.continue{border-top:4px solid var(--seal)}
 .card .meta,.continue .meta{font-size:.85rem;color:var(--muted)}
@@ -166,7 +168,7 @@ function addWrong(r,p,picked){
 function header(){
   const run=runOf(S.run), pos=run.rooms.indexOf(S.room);
   const dots=(S.screen==="room"||S.screen==="end") ? run.rooms.map((ri,i)=>`<span class="${i<pos||S.screen==="end"?"done":i===pos?"now":""}" title="${esc(ROOMS[ri].title)}">${i+1}</span>`).join("") : "";
-  return `<header><div class="brand">규장각 비밀 서고${S.screen==="room"||S.screen==="end"?` · ${esc(run.name)}`:""}</div>
+  return `<header><button class="brand" data-home aria-label="처음 화면으로"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 10c4-1 6-4 10-5 4 1 6 4 10 5"></path><path d="M5 10v10M19 10v10M9 20v-6h6v6"></path></svg><span>규장각 비밀 서고${S.screen==="room"||S.screen==="end"?` · ${esc(run.name)}`:""}</span></button>
     <div class="rooms" aria-label="방 진행">${dots}</div>
     <div class="stats">${(S.screen==="room"||S.screen==="end")?`<span>시간 <b id="t">${fmt(now())}</b></span><span>오답 <b>${S.wrongs.length}</b></span><span>힌트 <b>${S.hints}</b></span>`:""}<span class="save" id="savebadge">${saveLabel()}</span>${authButton()}</div></header>`;
 }
@@ -212,7 +214,7 @@ function renderIntro(){
   ${(tally.length||btl.length)?`<section style="display:flex;flex-direction:column;gap:12px">
     <h2>자주 틀린 문제</h2>
     <div class="history">${[...tally.map(t=>({label:shortQ(t.pz),count:t.count})),...btl.map(t=>({label:BANK[t.cat].name+" · "+t.word,count:t.count}))].sort((a,b)=>b.count-a.count).slice(0,6).map(t=>`<div><span>${esc(t.label)}</span><span></span><span>${t.count}번 틀림</span></div>`).join("")}</div>
-    <div class="row"><button class="btn ghost" id="notes">누적 오답 노트 전체 보기 (${tally.length+btl.length}문제)</button></div>
+    <div class="row"><button class="btn" id="introreview">오답 다시 풀기</button><button class="btn ghost" id="notes">누적 오답 노트 (${tally.length+btl.length}문제)</button></div>
   </section>`:""}`;
   $app.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{ S=fresh(); S.screen="drill"; S.drill=buildDrill(b.dataset.cat); render(); window.scrollTo(0,0); });
   $app.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>{ const id=b.dataset.run; S=fresh(); S.run=id; S.room=runOf(id).rooms[0]; S.screen="room"; startTimer(); render(); window.scrollTo(0,0); });
@@ -220,28 +222,39 @@ function renderIntro(){
   if(rs) rs.onclick=()=>{ S=Object.assign(fresh(),{run:"main"},SAVED_P,{startedAt:null}); startTimer(); render(); window.scrollTo(0,0); };
   const nb=document.getElementById("notes");
   if(nb) nb.onclick=()=>{ S.screen="notes"; render(); window.scrollTo(0,0); };
+  const ir=document.getElementById("introreview");
+  if(ir) ir.onclick=()=>{ S=fresh(); S.screen="drill"; S.drill=buildReview(); render(); window.scrollTo(0,0); };
 }
 
 function renderNotes(){
-  const tally=tallyList();
+  const tally=tallyList(), btl=bankTallyList(), total=tally.length+btl.length, done=masteredCount();
+  const doneBtn=(kind,k)=>`<div class="row" style="margin-top:10px"><button class="btn ghost small" data-master="${kind}" data-k="${esc(k)}">✓ 학습 완료</button></div>`;
   $app.innerHTML = `${header()}
   <section style="display:flex;flex-direction:column;gap:12px">
     <div class="row"><button class="btn ghost" id="back">← 처음 화면</button></div>
     <h2>누적 오답 노트</h2>
-    <p class="lead">지금까지 틀린 문제를 많이 틀린 순서로 모았어요.</p>
+    <p class="lead">지금까지 틀린 문제를 많이 틀린 순서로 모았어요. 다시 풀어서 맞히거나 '학습 완료'를 누르면 노트에서 빠져요.</p>
+    <div class="result-grid">
+      <div><b>${total}</b><small>남은 오답</small></div>
+      <div><b>${done}</b><small>학습 완료</small></div>
+      <div><b>${total+done?Math.round(done/(total+done)*100):0}%</b><small>완료율</small></div>
+    </div>
+    ${total?`<div class="row"><button class="btn" id="review">오답 다시 풀기 (${Math.min(total,15)}문제)</button></div>`:`<article class="card"><div class="q" style="margin:0">남은 오답이 없어요. 모두 학습 완료!</div></article>`}
     <h3 style="font-family:var(--display);font-weight:400;font-size:1.3rem;margin:8px 0 0">방탈출</h3>
-    <div class="wrong-list">${tally.map(t=>noteCard(t.pz, ROOMS[t.r].title+" · "+t.count+"번 틀림 · 마지막 "+dateLabel(t.last))).join("") || `<article class="card">아직 틀린 문제가 없어요.</article>`}</div>
+    <div class="wrong-list">${tally.map(t=>noteCard(t.pz, ROOMS[t.r].title+" · "+t.count+"번 틀림 · 마지막 "+dateLabel(t.last), doneBtn("room",key(t.r,t.p)))).join("") || `<article class="card">남은 오답이 없어요.</article>`}</div>
     <h3 style="font-family:var(--display);font-weight:400;font-size:1.3rem;margin:8px 0 0">문제은행</h3>
-    <div class="wrong-list">${bankTallyList().map(t=>`<article class="card"><div class="meta">${esc(BANK[t.cat].name)} · ${t.count}번 틀림 · 마지막 ${esc(dateLabel(t.last))}</div><div class="explain" style="border:0;margin:6px 0 0;padding:0">${explainOf({cat:t.cat,word:t.word})}</div></article>`).join("") || `<article class="card">아직 틀린 문제가 없어요.</article>`}</div>
+    <div class="wrong-list">${btl.map(t=>`<article class="card"><div class="meta">${esc(BANK[t.cat].name)} · ${t.count}번 틀림 · 마지막 ${esc(dateLabel(t.last))}</div><div class="explain" style="border:0;margin:6px 0 0;padding:0">${explainOf({cat:t.cat,word:t.word})}</div>${doneBtn("bank",bkey(t.cat,t.word))}</article>`).join("") || `<article class="card">남은 오답이 없어요.</article>`}</div>
   </section>`;
   document.getElementById("back").onclick=()=>{ S.screen="intro"; render(); window.scrollTo(0,0); };
+  const rv=document.getElementById("review"); if(rv) rv.onclick=()=>{ S=fresh(); S.screen="drill"; S.drill=buildReview(); render(); window.scrollTo(0,0); };
+  $app.querySelectorAll("[data-master]").forEach(b=>b.onclick=()=>{ const y=window.scrollY; master(b.dataset.master, b.dataset.k); renderNotes(); window.scrollTo(0,y); });
 }
 
-function noteCard(pz, meta){
+function noteCard(pz, meta, extra){
   return `<article class="card"><div class="meta">${esc(meta)}</div>
     ${pz.verse?`<p class="verse" style="margin-top:6px">${esc(pz.verse)}</p>`:""}
     <div class="q">${esc(pz.q)}</div><div>정답: <b>${esc(Array.isArray(pz.answer)?pz.answer[0]:pz.answer)}</b>${hj(pz)?` <span class="hanja">${esc(hj(pz))}</span>`:""}</div>
-    <div class="explain">${esc(pz.explain)}</div></article>`;
+    <div class="explain">${esc(pz.explain)}</div>${extra||""}</article>`;
 }
 function shortQ(pz){ const t=pz.verse? pz.verse+" · "+pz.q : pz.q; return t.length>34? t.slice(0,33)+"…" : t; }
 function dateLabel(iso){ try{ const d=new Date(iso); return (d.getMonth()+1)+"월 "+d.getDate()+"일"; }catch(e){ return ""; } }
@@ -330,6 +343,12 @@ function bindRoom(r){
   if(nx) nx.onclick=()=>{ S.lockOpen=false; if(isLast(r)){ stopTimer(); S.screen="end"; finishRun(); } else { const rr=runOf(S.run).rooms; S.room=rr[rr.indexOf(r)+1]; } render(); window.scrollTo(0,0); };
 }
 
+function goHome(){
+  if(S.screen==="intro") { window.scrollTo(0,0); return; }
+  if(S.screen==="room"){ lastSaved=""; saveProgress(); }
+  stopTimer(); S=fresh(); render(); window.scrollTo(0,0);
+}
+document.addEventListener("click",e=>{ if(e.target.closest("[data-home]")) goHome(); });
 function updateStats(){ const h=$app.querySelector("header"); if(h) h.outerHTML=header(); }
 function reRender(id){ const y=window.scrollY; render(); window.scrollTo(0,y); const el=document.getElementById(id); const f=el&&el.querySelector("input,button:not(:disabled)"); if(f) f.focus({preventScroll:true}); }
 
@@ -407,7 +426,34 @@ function buildDrill(cat, onlyWords){
   }
   return {cat, qs:pick.map(it=>makeQuestion(cat,it)), i:0, correct:0, done:false, picked:null, wrongs:[]};
 }
+function makeRoomQuestion(r,p){
+  const pz=ROOMS[r].puzzles[p], label=ROOMS[r].title;
+  if(pz.type==="text") return {src:"room", r, p, rk:key(r,p), type:"init", label, prompt:pz.q, initials:pz.initials, answer:pz.answer[0]};
+  return {src:"room", r, p, rk:key(r,p), type:"m2w", label, verse:pz.verse||"", prompt:pz.q,
+    options:shuffle(pz.options).map(o=>({text:o, sub:(pz.oh&&pz.oh[o])||""})), answer:pz.answer};
+}
+function reviewList(){
+  return [...tallyList().map(t=>({kind:"room",t})), ...bankTallyList().map(t=>({kind:"bank",t}))];
+}
+function buildReview(){
+  const list=shuffle(reviewList()).slice(0,15);
+  const qs=list.map(x=> x.kind==="room" ? makeRoomQuestion(x.t.r,x.t.p) : Object.assign(makeQuestion(x.t.cat, itemOf(x.t.cat,x.t.word)),{src:"bank"}));
+  return {cat:"review", qs, i:0, correct:0, done:false, picked:null, wrongs:[], wrongQs:[], mastered:0};
+}
+function master(kind,k){
+  REC.mastered=REC.mastered||{};
+  if(kind==="room") delete (REC.tally||{})[k]; else delete (REC.btally||{})[k];
+  REC.mastered[kind+"|"+k]=new Date().toISOString();
+  saveRec();
+}
+function bump(kind,k){
+  const box = kind==="room" ? (REC.tally=REC.tally||{}) : (REC.btally=REC.btally||{});
+  const t=box[k]||{count:0}; box[k]={count:t.count+1,last:new Date().toISOString()};
+}
+function masteredCount(){ return Object.keys(REC.mastered||{}).length; }
 function explainOf(q){
+  if(q.src==="room"){ const pz=ROOMS[q.r].puzzles[q.p];
+    return `<b>${esc(Array.isArray(pz.answer)?pz.answer[0]:pz.answer)}</b>${hj(pz)?` <span class="hanja">${esc(hj(pz))}</span>`:""} · ${esc(pz.explain)}`; }
   const B=BANK[q.cat], it=itemOf(q.cat,q.word); if(!it) return "";
   if(B.kind==="pair") return `<b>${esc(it[0])}</b> (✕ ${esc(it[1])}) · ${esc(it[2]||"")}`;
   if(B.kind==="hanja") return `<b>${esc(it[0])}</b>${it[1]?` <span class="hanja">${esc(it[1])}</span>`:""} · ${esc(it[2])}`;
@@ -422,13 +468,18 @@ function answerDrill(val){
   const ok = q.type==="init" ? norm(val)===norm(q.answer) : val===q.answer;
   D.picked=val; D.ok=ok;
   REC.bank=REC.bank||{}; REC.btally=REC.btally||{};
+  if(D.cat==="review"){
+    if(ok){ D.correct++; D.mastered=(D.mastered||0)+1; master(q.src, q.src==="room"?q.rk:bkey(q.cat,q.word)); }
+    else { D.wrongs.push(q.word||q.rk); (D.wrongQs=D.wrongQs||[]).push(q); bump(q.src, q.src==="room"?q.rk:bkey(q.cat,q.word)); saveRec(); }
+    return;
+  }
   const st=REC.bank[q.cat]||{seen:0,correct:0}; st.seen++; if(ok) st.correct++; REC.bank[q.cat]=st;
   if(ok) D.correct++;
-  else { D.wrongs.push(q.word); const k=bkey(q.cat,q.word), t=REC.btally[k]||{count:0}; REC.btally[k]={count:t.count+1,last:new Date().toISOString()}; }
+  else { D.wrongs.push(q.word); (D.wrongQs=D.wrongQs||[]).push(q); const k=bkey(q.cat,q.word), t=REC.btally[k]||{count:0}; REC.btally[k]={count:t.count+1,last:new Date().toISOString()}; }
   saveRec();
 }
 function renderDrill(){
-  const D=S.drill, B=BANK[D.cat];
+  const D=S.drill, B=D.cat==="review" ? {name:"오답 복습"} : BANK[D.cat];
   if(D.done) return renderDrillEnd();
   const q=D.qs[D.i], answered=D.picked!==null;
   let body="";
@@ -445,15 +496,16 @@ function renderDrill(){
   const head = q.type==="w2m"
     ? `<div class="q" style="font-family:var(--display);font-weight:400;font-size:1.7rem">${esc(q.prompt)}${q.promptSub?` <span class="hanja" style="font-size:1rem">${esc(q.promptSub)}</span>`:""}</div><div class="meta">뜻으로 알맞은 것은?</div>`
     : q.type==="pair" ? `<div class="q">${esc(q.prompt)}</div>`
-    : `<div class="meta">${q.type==="init"?"초성을 보고 쓰세요":"뜻에 알맞은 말은?"}</div><div class="q">${esc(q.prompt)}</div>`;
-  const fb = answered ? `<div class="explain"><span style="color:${D.ok?"var(--green)":"var(--seal)"};font-weight:700">${D.ok?"정답이에요.":"아쉬워요."}</span> ${explainOf(q)}</div>
+    : `<div class="meta">${q.label?esc(q.label)+" · ":""}${q.type==="init"?"초성을 보고 쓰세요":(q.src==="room"?"알맞은 답은?":"뜻에 알맞은 말은?")}</div>${q.verse?`<p class="verse">${esc(q.verse)}</p>`:""}<div class="q">${esc(q.prompt)}</div>`;
+  const fb = answered ? `<div class="explain"><span style="color:${D.ok?"var(--green)":"var(--seal)"};font-weight:700">${D.ok?(D.cat==="review"?"정답! 학습 완료.":"정답이에요."):"아쉬워요."}</span> ${explainOf(q)}</div>
      <div class="row" style="margin-top:12px"><button class="btn" id="dnext">${D.i===D.qs.length-1?"결과 보기":"다음 문제"}</button></div>` : "";
   $app.innerHTML = `${header()}
   <section style="display:flex;flex-direction:column;gap:12px">
     <div class="row" style="justify-content:space-between;align-items:center"><button class="btn ghost" id="dquit">← 그만하기</button>
       <span class="meta" style="font-variant-numeric:tabular-nums">${D.i+1} / ${D.qs.length} · 맞힘 ${D.correct}</span></div>
     <div class="dbar" aria-hidden="true"><span style="width:${(D.i+(answered?1:0))/D.qs.length*100}%"></span></div>
-    <span class="tag">문제은행 · ${esc(B.name)}</span>
+    <span class="tag">${D.cat==="review"?"누적 오답 노트 · 다시 풀기":"문제은행 · "+esc(B.name)}</span>
+    ${D.cat==="review"?`<p class="lead" style="margin:0">맞히면 '학습 완료'로 오답 노트에서 빠지고, 틀리면 남아요.</p>`:""}
     <article class="card" id="dcard"><div class="num">문제 ${D.i+1}</div>${head}${body}${fb}</article>
   </section>`;
   $app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{ answerDrill(b.dataset.v); renderDrill(); const n=document.getElementById("dnext"); if(n) n.focus({preventScroll:true}); });
@@ -465,22 +517,32 @@ function renderDrill(){
   document.getElementById("dquit").onclick=()=>{ S=fresh(); render(); window.scrollTo(0,0); };
 }
 function renderDrillEnd(){
-  const D=S.drill, B=BANK[D.cat], st=(REC.bank||{})[D.cat]||{seen:0,correct:0};
-  const wrongCards=D.wrongs.map(w=>{ const q={cat:D.cat,word:w}; return `<article class="card"><div class="explain" style="border:0;margin:0;padding:0">${explainOf(q)}</div></article>`; }).join("");
+  const D=S.drill, R=D.cat==="review";
+  const B=R?{name:"오답 복습"}:BANK[D.cat], st=R?null:((REC.bank||{})[D.cat]||{seen:0,correct:0});
+  const wq=D.wrongQs || D.wrongs.map(w=>({cat:D.cat,word:w}));
+  const wrongCards=wq.map(q=>`<article class="card"><div class="explain" style="border:0;margin:0;padding:0">${explainOf(q)}</div></article>`).join("");
+  const left=reviewList().length;
   $app.innerHTML = `${header()}
   <section style="display:flex;flex-direction:column;gap:16px">
-    <span class="tag">문제은행 · ${esc(B.name)}</span>
+    <span class="tag">${R?"누적 오답 노트 · 다시 풀기":"문제은행 · "+esc(B.name)}</span>
     <h1 style="font-size:clamp(2rem,6vw,3rem)">${D.correct} / ${D.qs.length} 맞혔어요</h1>
     <div class="result-grid">
-      <div><b>${D.correct}</b><small>이번에 맞힘</small></div>
+      ${R?`<div><b>${D.mastered||0}</b><small>이번에 학습 완료</small></div>
+      <div><b>${left}</b><small>남은 오답</small></div>
+      <div><b>${masteredCount()}</b><small>누적 학습 완료</small></div>`
+      :`<div><b>${D.correct}</b><small>이번에 맞힘</small></div>
       <div><b>${D.wrongs.length}</b><small>이번에 틀림</small></div>
-      <div><b>${st.seen?Math.round(st.correct/st.seen*100):0}%</b><small>누적 정답률</small></div>
+      <div><b>${st.seen?Math.round(st.correct/st.seen*100):0}%</b><small>누적 정답률</small></div>`}
     </div>
-    <div class="row"><button class="btn" id="dmore">10문제 더</button>${D.wrongs.length?`<button class="btn ghost" id="dretry">틀린 것만 다시</button>`:""}<button class="btn ghost" id="dhome">처음 화면</button></div>
+    <div class="row">${R
+      ? `${left?`<button class="btn" id="dmore">남은 오답 다시 풀기</button>`:""}<button class="btn ghost" id="dnotes">오답 노트 보기</button>`
+      : `<button class="btn" id="dmore">10문제 더</button>${D.wrongs.length?`<button class="btn ghost" id="dretry">틀린 것만 다시</button>`:""}`}<button class="btn ghost" id="dhome">처음 화면</button></div>
+    ${R&&!left?`<p class="lead" style="color:var(--green);font-weight:700;margin:0">오답 노트를 모두 학습 완료했어요!</p>`:""}
   </section>
-  ${D.wrongs.length?`<section style="display:flex;flex-direction:column;gap:12px"><h2>이번에 틀린 문제</h2><div class="wrong-list">${wrongCards}</div></section>`:""}`;
-  document.getElementById("dmore").onclick=()=>{ S.drill=buildDrill(D.cat); renderDrill(); window.scrollTo(0,0); };
+  ${wq.length?`<section style="display:flex;flex-direction:column;gap:12px"><h2>이번에 틀린 문제</h2><div class="wrong-list">${wrongCards}</div></section>`:""}`;
+  const mo=document.getElementById("dmore"); if(mo) mo.onclick=()=>{ S.drill= R ? buildReview() : buildDrill(D.cat); renderDrill(); window.scrollTo(0,0); };
   const rt=document.getElementById("dretry"); if(rt) rt.onclick=()=>{ S.drill=buildDrill(D.cat, D.wrongs); renderDrill(); window.scrollTo(0,0); };
+  const nb=document.getElementById("dnotes"); if(nb) nb.onclick=()=>{ S=fresh(); S.screen="notes"; render(); window.scrollTo(0,0); };
   document.getElementById("dhome").onclick=()=>{ S=fresh(); render(); window.scrollTo(0,0); };
 }
 function bankTallyList(){
