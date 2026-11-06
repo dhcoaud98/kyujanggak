@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>규장각 비밀 서고</title>
+<meta name="theme-color" content="#f4ecda">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Song+Myung&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* 궁궐 서고: 한지 바탕, 기와 줄과 단청 띠, 석간주 강조, 자물쇠는 현판 */
+:root{
+  --ground:#f4ecda;     /* 한지 */
+  --card:#fbf7ee;       /* 장지 */
+  --line:#d9cbb0;
+  --ink:#2a241c;        /* 먹 */
+  --muted:#6b5d45;
+  --seal:#9a3324;       /* 석간주 */
+  --green:#2f6b5e;      /* 뇌록 */
+  --board:#2b2a27;      /* 현판 */
+  --gold:#e3c27a;
+  --dancheong:repeating-linear-gradient(90deg,#2f6b5e 0 18px,#c2452f 18px 24px,#f8f2e4 24px 27px,#d9a441 27px 33px,#2c4a7a 33px 40px);
+  --display:"Song Myung","Nanum Myeongjo",serif;
+  --body:"Gowun Batang","Nanum Myeongjo","Apple SD Gothic Neo",serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);line-height:1.65}
+body::before{content:"";display:block;height:8px;background:#3d3b37}
+body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:6px;background:var(--dancheong)}
+.band{height:10px;background:var(--dancheong)}
+button,input{font:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--seal);outline-offset:3px}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 64px;display:flex;flex-direction:column;gap:20px}
+
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:14px}
+.brand{font-family:var(--display);font-size:1.35rem;letter-spacing:.04em}
+.stats{display:flex;gap:16px;font-size:.9rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.stats b{color:var(--ink);font-weight:700}
+.rooms{display:flex;gap:6px}
+.rooms span{width:28px;height:28px;border:1px solid #b8a888;display:grid;place-items:center;font-size:.8rem;color:var(--muted);font-family:var(--display)}
+.rooms span.done{background:var(--green);border-color:var(--green);color:#fff}
+.rooms span.now{border:2px solid var(--seal);color:var(--seal)}
+
+h1{font-family:var(--display);font-weight:400;font-size:clamp(2.2rem,7vw,3.6rem);line-height:1.15;margin:8px 0 0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:400;font-size:1.8rem;margin:0;text-wrap:balance}
+.lead{color:#5a4d37;max-width:62ch;margin:0}
+.tag{display:inline-block;align-self:flex-start;font-size:.8rem;border:1px solid var(--seal);color:var(--seal);padding:1px 10px;letter-spacing:.08em}
+
+.btn{background:var(--seal);color:#fff;border:0;padding:12px 22px;font-weight:700;letter-spacing:.03em}
+.btn:hover{filter:brightness(1.1)}
+.btn.ghost{background:transparent;border:1px solid #b8a888;color:var(--ink);font-weight:400}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+.intro-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.intro-grid div{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--green);padding:14px}
+.intro-grid small{color:var(--muted);display:block}
+
+.card{background:var(--card);color:var(--ink);padding:18px 20px;position:relative;border:1px solid var(--line)}
+.card .num{font-family:var(--display);color:var(--seal);font-size:.95rem}
+.card .q{font-size:1.08rem;font-weight:700;margin:4px 0 10px}
+.card .verse{font-family:var(--display);font-size:1.05rem;background:#efe4cc;padding:8px 12px;margin:0 0 10px;border-left:3px solid var(--green)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:480px){.opts{grid-template-columns:1fr}}
+.opt{background:#fff;border:1px solid #cdbd9c;color:var(--ink);padding:10px 12px;text-align:left;min-height:48px}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt.wrong{background:#f3dcd6;border-color:var(--seal);text-decoration:line-through;color:#7a2a1f}
+.opt.right{background:#dcebe5;border-color:var(--green);font-weight:700}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row input{flex:1;min-width:160px;padding:10px 12px;border:1px solid #b5a684;background:#fff;color:var(--ink)}
+.card .btn{padding:10px 16px}
+.small-btn{background:none;border:0;color:var(--muted);text-decoration:underline;padding:4px 0;font-size:.88rem}
+.feedback{margin-top:10px;font-size:.93rem;min-height:1em}
+.feedback.bad{color:var(--seal)}
+.explain{margin-top:10px;font-size:.93rem;border-top:1px dashed #b5a684;padding-top:10px}
+.clue{position:absolute;top:14px;right:16px;width:46px;height:46px;border:2px solid var(--seal);color:var(--seal);
+  display:grid;place-items:center;font-family:var(--display);font-size:1.4rem;transform:rotate(-6deg);background:#f8efe0}
+.card.solved .q{padding-right:56px}
+.hanja{color:var(--muted);font-size:.9rem;font-weight:400}
+.opt.wrong .hanja{color:#7a2a1f}
+
+/* 자물쇠 = 현판 */
+.lock{background:var(--board);color:var(--gold);border:3px solid var(--green);outline:1px solid #d9a441;outline-offset:-8px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.lock h3{margin:0;font-family:var(--display);font-weight:400;font-size:1.3rem;letter-spacing:.1em}
+.slots{display:flex;gap:8px;flex-wrap:wrap}
+.slots span{min-width:44px;height:52px;padding:0 8px;border:1px solid #6b6455;display:grid;place-items:center;font-family:var(--display);font-size:1.5rem;color:#9a8f78}
+.slots span.got{border-color:var(--gold);color:var(--gold)}
+.lock input{flex:1;min-width:160px;padding:12px;background:#1c1b19;border:1px solid #8a7a55;color:var(--gold);font-size:1.2rem;letter-spacing:.2em;font-family:var(--display)}
+.lock .feedback{color:#f0b3a8}
+.lock .note{color:#d6c69f;font-size:.9rem;margin:0}
+.lock .small-btn{color:#d6c69f}
+
+.stamp{align-self:center;width:120px;height:120px;border:5px solid var(--seal);color:var(--seal);background:#f8efe0;display:grid;place-items:center;
+  font-family:var(--display);font-size:2.4rem;line-height:1;transform:rotate(-8deg);animation:stamp .45s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes stamp{from{transform:scale(2.2) rotate(-8deg);opacity:0}to{transform:scale(1) rotate(-8deg);opacity:1}}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+@media (prefers-reduced-motion:reduce){.stamp,.shake{animation:none}}
+
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.result-grid div{background:var(--card);border:1px solid var(--line);padding:14px;text-align:center}
+.result-grid b{display:block;font-family:var(--display);font-size:1.8rem;font-weight:400;font-variant-numeric:tabular-nums}
+.result-grid small{color:var(--muted)}
+.wrong-list{display:flex;flex-direction:column;gap:10px}
+.wings{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.wing{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--green);padding:16px;display:flex;flex-direction:column;gap:6px}
+.wing h3{margin:0;font-family:var(--display);font-weight:400;font-size:1.6rem}
+.wing p{margin:0 0 6px;font-size:.95rem;color:#5a4d37}
+.wing .meta{font-size:.82rem;color:var(--muted)}
+.wing .btn{margin-top:auto;align-self:flex-start}
+.bank{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.bankbtn{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--seal);padding:14px 16px;text-align:left;display:flex;flex-direction:column;gap:2px;color:var(--ink)}
+.bankbtn:hover{border-color:var(--ink)}
+.bankbtn .bname{font-family:var(--display);font-size:1.3rem}
+.bankbtn .meta,.card .meta{font-size:.82rem;color:var(--muted)}
+.dbar{height:4px;background:var(--line)}
+.dbar span{display:block;height:100%;background:var(--green)}
+.authbtn{background:var(--seal);color:#fff;border-color:var(--seal)!important;cursor:pointer;padding:2px 10px}
+.save{font-size:.8rem;border:1px solid var(--line);padding:0 8px;color:var(--muted)}
+.card.continue{border-top:4px solid var(--seal)}
+.card .meta,.continue .meta{font-size:.85rem;color:var(--muted)}
+.history{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.history div{display:grid;grid-template-columns:1fr auto auto;gap:14px;padding:10px 2px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-size:.95rem}
+.history div span:last-child{color:var(--muted)}
+.wrong-list .card{padding:14px 16px;border-left:6px solid var(--seal)}
+.wrong-list .meta{font-size:.82rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="band" aria-hidden="true"></div>
+<div class="wrap" id="app"></div>
+
+<script src="questions.js"></script>
+<script>
+RUNS.forEach(r=>{ r.rooms=r.rooms.map(id=>typeof id==="number"?id:ROOMS.findIndex(x=>x.id===id)).filter(i=>i>=0); });
+function runOf(id){ return RUNS.find(x=>x.id===id) || RUNS[0]; }
+const $app = document.getElementById("app");
+let S = fresh();
+let tick = null;
+
+function fresh(){ return {screen:"intro", run:"main", seed:1+Math.floor(Math.random()*99999), room:0, solved:{}, picked:{}, wrongs:[], hints:0, elapsed:0, startedAt:null, lockOpen:false}; }
+function isLast(r){ const rr=runOf(S.run).rooms; return rr.indexOf(r)===rr.length-1; }
+function hj(pz){ return pz.hanja || (pz.oh && pz.oh[pz.answer]) || ""; }
+function key(r,p){ return (ROOMS[r]&&ROOMS[r].id ? ROOMS[r].id : r)+"-"+p; }
+function norm(s){ return (s||"").replace(/\s+/g,"").toUpperCase(); }
+function now(){ return S.elapsed + (S.startedAt ? (Date.now()-S.startedAt)/1000 : 0); }
+function fmt(sec){ sec=Math.floor(sec); return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0"); }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function shuffled(arr, seed){ const a=arr.slice(); let x=seed*9301+49297; for(let i=a.length-1;i>0;i--){ x=(x*9301+49297)%233280; const j=Math.floor(x/233280*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function startTimer(){ if(!S.startedAt) S.startedAt=Date.now(); clearInterval(tick); tick=setInterval(()=>{ const t=document.getElementById("t"); if(t) t.textContent=fmt(now()); },500); }
+function stopTimer(){ S.elapsed=now(); S.startedAt=null; clearInterval(tick); }
+
+function addWrong(r,p,picked){
+  const pz=ROOMS[r].puzzles[p];
+  if(S.wrongs.some(w=>w.r===r&&w.p===p)) return;
+  S.wrongs.push({r,p,picked});
+}
+
+function header(){
+  const run=runOf(S.run), pos=run.rooms.indexOf(S.room);
+  const dots=(S.screen==="room"||S.screen==="end") ? run.rooms.map((ri,i)=>`<span class="${i<pos||S.screen==="end"?"done":i===pos?"now":""}" title="${esc(ROOMS[ri].title)}">${i+1}</span>`).join("") : "";
+  return `<header><div class="brand">규장각 비밀 서고${S.screen==="room"||S.screen==="end"?` · ${esc(run.name)}`:""}</div>
+    <div class="rooms" aria-label="방 진행">${dots}</div>
+    <div class="stats"><span>시간 <b id="t">${fmt(now())}</b></span><span>오답 <b>${S.wrongs.length}</b></span><span>힌트 <b>${S.hints}</b></span><span class="save" id="savebadge">${saveLabel()}</span>${authButton()}</div></header>`;
+}
+
+function render(){
+  if(S.screen==="intro") return renderIntro();
+  if(S.screen==="end") return renderEnd();
+  if(S.screen==="notes") return renderNotes();
+  if(S.screen==="drill") return renderDrill();
+  renderRoom();
+  saveProgress();
+}
+
+function renderIntro(){
+  const P=hasProgress()?SAVED_P:null;
+  const got=P?ROOMS[P.room].puzzles.filter((_,i)=>P.solved[key(P.room,i)]).length:0;
+  const tally=tallyList(), btl=bankTallyList();
+  const total=ROOMS.reduce((n,r)=>n+r.puzzles.length,0)+BANK_ORDER.reduce((n,c)=>n+BANK[c].items.length,0);
+  $app.innerHTML = `${header()}
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <span class="tag">수능 · 공무원 국어 · 영어 · ${total}문항</span>
+    <h1>규장각 비밀 서고에<br>갇혔습니다</h1>
+    <p class="lead">밤늦게 고서를 정리하다 문이 잠겼어요. 세 관 가운데 하나를 골라 방탈출을 하거나, 아래 문제은행에서 영역별로 연습하세요. 방마다 문제를 풀면 단서가 나오고, 단서를 모아 자물쇠를 열면 다음 방으로 넘어갑니다.</p>
+    ${P?`<article class="card continue">
+      <div class="meta">이어 하기 · ${esc(runOf(P.run).name)} · ${fmt(P.elapsed||0)} 경과 · 단서 ${got}/4</div>
+      <div class="q" style="font-family:var(--display);font-weight:400;font-size:1.4rem;margin:4px 0 12px">${esc(ROOMS[P.room].title)}</div>
+      <div class="row"><button class="btn" id="resume">계속 풀기</button></div>
+    </article>`:""}
+    <div class="wings">${RUNS.map(r=>{ const b=(REC.bestBy||{})[r.id]; const n=r.rooms.reduce((k,i)=>k+ROOMS[i].puzzles.length,0);
+      return `<article class="wing">
+        <div class="meta">${esc(r.sub)} · 방 ${r.rooms.length}개 · ${n}문제</div>
+        <h3>${esc(r.name)}</h3>
+        <p>${esc(r.desc)}</p>
+        <div class="meta">${b?`최고 기록 ${fmt(b.time)}`:"아직 기록 없음"}</div>
+        <button class="btn${P?" ghost":""}" data-run="${r.id}">${P&&P.run===r.id?"처음부터 새로":"입장하기"}</button>
+      </article>`; }).join("")}</div>
+  </section>
+  ${bankSection()}
+  ${REC.runs.length?`<section style="display:flex;flex-direction:column;gap:12px">
+    <h2>최근 기록</h2>
+    <div class="history">${REC.runs.slice(0,5).map(r=>`<div><span>${esc(dateLabel(r.date))} · ${esc(runOf(r.run).name)}</span><span>${fmt(r.time)}</span><span>오답 ${r.wrongs} · 힌트 ${r.hints}</span></div>`).join("")}</div>
+  </section>`:""}
+  ${(tally.length||btl.length)?`<section style="display:flex;flex-direction:column;gap:12px">
+    <h2>자주 틀린 문제</h2>
+    <div class="history">${[...tally.map(t=>({label:shortQ(t.pz),count:t.count})),...btl.map(t=>({label:BANK[t.cat].name+" · "+t.word,count:t.count}))].sort((a,b)=>b.count-a.count).slice(0,6).map(t=>`<div><span>${esc(t.label)}</span><span></span><span>${t.count}번 틀림</span></div>`).join("")}</div>
+    <div class="row"><button class="btn ghost" id="notes">누적 오답 노트 전체 보기 (${tally.length+btl.length}문제)</button></div>
+  </section>`:""}`;
+  $app.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{ S=fresh(); S.screen="drill"; S.drill=buildDrill(b.dataset.cat); render(); window.scrollTo(0,0); });
+  $app.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>{ const id=b.dataset.run; S=fresh(); S.run=id; S.room=runOf(id).rooms[0]; S.screen="room"; startTimer(); render(); window.scrollTo(0,0); });
+  const rs=document.getElementById("resume");
+  if(rs) rs.onclick=()=>{ S=Object.assign(fresh(),{run:"main"},SAVED_P,{startedAt:null}); startTimer(); render(); window.scrollTo(0,0); };
+  const nb=document.getElementById("notes");
+  if(nb) nb.onclick=()=>{ S.screen="notes"; render(); window.scrollTo(0,0); };
+}
+
+function renderNotes(){
+  const tally=tallyList();
+  $app.innerHTML = `${header()}
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <div class="row"><button class="btn ghost" id="back">← 처음 화면</button></div>
+    <h2>누적 오답 노트</h2>
+    <p class="lead">지금까지 틀린 문제를 많이 틀린 순서로 모았어요.</p>
+    <h3 style="font-family:var(--display);font-weight:400;font-size:1.3rem;margin:8px 0 0">방탈출</h3>
+    <div class="wrong-list">${tally.map(t=>noteCard(t.pz, ROOMS[t.r].title+" · "+t.count+"번 틀림 · 마지막 "+dateLabel(t.last))).join("") || `<article class="card">아직 틀린 문제가 없어요.</article>`}</div>
+    <h3 style="font-family:var(--display);font-weight:400;font-size:1.3rem;margin:8px 0 0">문제은행</h3>
+    <div class="wrong-list">${bankTallyList().map(t=>`<article class="card"><div class="meta">${esc(BANK[t.cat].name)} · ${t.count}번 틀림 · 마지막 ${esc(dateLabel(t.last))}</div><div class="explain" style="border:0;margin:6px 0 0;padding:0">${explainOf({cat:t.cat,word:t.word})}</div></article>`).join("") || `<article class="card">아직 틀린 문제가 없어요.</article>`}</div>
+  </section>`;
+  document.getElementById("back").onclick=()=>{ S.screen="intro"; render(); window.scrollTo(0,0); };
+}
+
+function noteCard(pz, meta){
+  return `<article class="card"><div class="meta">${esc(meta)}</div>
+    ${pz.verse?`<p class="verse" style="margin-top:6px">${esc(pz.verse)}</p>`:""}
+    <div class="q">${esc(pz.q)}</div><div>정답: <b>${esc(Array.isArray(pz.answer)?pz.answer[0]:pz.answer)}</b>${hj(pz)?` <span class="hanja">${esc(hj(pz))}</span>`:""}</div>
+    <div class="explain">${esc(pz.explain)}</div></article>`;
+}
+function shortQ(pz){ const t=pz.verse? pz.verse+" · "+pz.q : pz.q; return t.length>34? t.slice(0,33)+"…" : t; }
+function dateLabel(iso){ try{ const d=new Date(iso); return (d.getMonth()+1)+"월 "+d.getDate()+"일"; }catch(e){ return ""; } }
+
+function renderRoom(){
+  const r=S.room, R=ROOMS[r];
+  const total=R.puzzles.length;
+  const got=R.puzzles.filter((_,p)=>S.solved[key(r,p)]).length;
+  const cards=R.puzzles.map((pz,p)=>puzzleCard(r,p,pz)).join("");
+  const slots=R.puzzles.map((pz,p)=>`<span class="${S.solved[key(r,p)]?"got":""}">${S.solved[key(r,p)]?esc(pz.clue):"?"}</span>`).join("");
+  const ready=got===total;
+  $app.innerHTML = `${header()}
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <span class="tag">${R.subject}</span>
+    <h2>${esc(R.title)}</h2>
+    <p class="lead">${esc(R.story)}</p>
+  </section>
+  ${cards}
+  <section class="lock" aria-labelledby="lockh">
+    <h3 id="lockh">자물쇠 · ${esc(R.lockLabel)}</h3>
+    <div class="slots" aria-label="모은 단서">${slots}</div>
+    ${S.lockOpen ? `<div class="stamp" aria-hidden="true">開</div>
+      <p class="note" style="text-align:center">자물쇠가 열렸습니다.</p>
+      <div class="row" style="justify-content:center"><button class="btn" id="next">${isLast(r)?"서고 밖으로":"다음 방으로"}</button></div>`
+    : `<p class="note">${ready?esc(R.lockPrompt):`문제를 모두 풀어 단서를 모으세요. (${got}/${total})`}</p>
+      <form class="row" id="lockf">
+        <label for="lockin" class="note" style="position:absolute;left:-9999px">자물쇠 입력</label>
+        <input id="lockin" autocomplete="off" ${R.lockType==="digits"?'inputmode="numeric"':''} placeholder="${esc(R.lockLabel)}" ${ready?"":"disabled"}>
+        <button class="btn" ${ready?"":"disabled"}>열기</button>
+      </form>
+      <div class="row"><button class="small-btn" id="lockhint" style="color:var(--muted)" ${ready?"":"disabled"}>자물쇠 힌트 보기</button></div>
+      <div class="feedback" id="lockfb" role="status"></div>`}
+  </section>`;
+  bindRoom(r);
+}
+
+function puzzleCard(r,p,pz){
+  const k=key(r,p), done=S.solved[k], picked=S.picked[k]||[];
+  const head=`<div class="num">문제 ${p+1}</div>${pz.verse?`<p class="verse">${esc(pz.verse)}<br><span class="hanja">— ${esc(pz.src)}</span></p>`:""}<div class="q">${esc(pz.q)}</div>`;
+  let body="";
+  if(pz.type==="mc"){
+    const opts=shuffled(pz.options, (S.seed||1)+r*10+p*7);
+    body=`<div class="opts">${opts.map(o=>{
+      const cls = done&&o===pz.answer ? "right" : picked.includes(o) ? "wrong" : "";
+      return `<button class="opt ${cls}" data-k="${k}" data-o="${esc(o)}" ${done||picked.includes(o)?"disabled":""}>${esc(o)}${pz.oh&&pz.oh[o]?` <span class="hanja">${esc(pz.oh[o])}</span>`:""}</button>`;}).join("")}</div>`;
+  } else {
+    body = done ? `<p style="margin:0;font-family:var(--display);font-size:1.3rem">${esc(pz.answer[0])} <span class="hanja">${esc(pz.hanja)}</span></p>`
+    : `<p style="margin:0 0 8px;font-family:var(--display);font-size:1.5rem;letter-spacing:.3em">${esc(pz.initials)}</p>
+       <form class="row" data-k="${k}"><label for="in-${k}" style="position:absolute;left:-9999px">정답 입력</label>
+       <input id="in-${k}" autocomplete="off" placeholder="네 글자 입력"><button class="btn">확인</button></form>
+       ${S.picked[k+"h"]?`<p class="hanja" style="margin:8px 0 0">한자 힌트: ${esc(pz.hanja)}</p>`:`<button class="small-btn" data-hint="${k}">한자로 힌트 보기</button>`}`;
+  }
+  const fb = done ? `<div class="explain">${esc(pz.explain)}</div>` : `<div class="feedback bad" id="fb-${k}" role="status"></div>`;
+  return `<article class="card ${done?"solved":""}" id="card-${k}">${done?`<div class="clue" aria-label="단서 ${esc(pz.clue)}">${esc(pz.clue)}</div>`:""}${head}${body}${fb}</article>`;
+}
+
+function bindRoom(r){
+  const R=ROOMS[r];
+  $app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k, o=b.dataset.o, p=+k.slice(k.lastIndexOf("-")+1), pz=R.puzzles[p];
+    if(o===pz.answer){ S.solved[k]=true; reRender("card-"+k); }
+    else { (S.picked[k]=S.picked[k]||[]).push(o); addWrong(r,p,o); reRender("card-"+k);
+      const fb=document.getElementById("fb-"+k); if(fb) fb.textContent="아니에요. 다시 골라 보세요."; }
+  });
+  $app.querySelectorAll("form[data-k]").forEach(f=>f.onsubmit=e=>{
+    e.preventDefault();
+    const k=f.dataset.k, p=+k.slice(k.lastIndexOf("-")+1), pz=R.puzzles[p], v=f.querySelector("input").value;
+    if(!norm(v)) return;
+    if(pz.answer.some(a=>norm(a)===norm(v))){ S.solved[k]=true; reRender("card-"+k); }
+    else { addWrong(r,p,v.trim()); const fb=document.getElementById("fb-"+k); fb.textContent=`'${v.trim()}'은(는) 아니에요. 초성과 뜻을 다시 확인해 보세요.`;
+      const c=document.getElementById("card-"+k); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake");
+      updateStats(); }
+  });
+  $app.querySelectorAll("[data-hint]").forEach(b=>b.onclick=()=>{ S.picked[b.dataset.hint+"h"]=true; S.hints++; reRender("card-"+b.dataset.hint); });
+  const lf=document.getElementById("lockf");
+  if(lf) lf.onsubmit=e=>{
+    e.preventDefault();
+    const v=document.getElementById("lockin").value;
+    if(R.lockAnswer.some(a=>norm(a)===norm(v))){ S.lockOpen=true; render(); document.querySelector(".lock").scrollIntoView({block:"center"}); }
+    else { const fb=document.getElementById("lockfb"); fb.textContent="자물쇠가 꿈쩍도 하지 않아요. 단서의 순서를 확인해 보세요.";
+      const l=document.querySelector(".lock"); l.classList.remove("shake"); void l.offsetWidth; l.classList.add("shake"); }
+  };
+  const lh=document.getElementById("lockhint");
+  if(lh) lh.onclick=()=>{ S.hints++; document.getElementById("lockfb").textContent="힌트: "+R.lockHint; updateStats(); saveProgress(); };
+  const nx=document.getElementById("next");
+  if(nx) nx.onclick=()=>{ S.lockOpen=false; if(isLast(r)){ stopTimer(); S.screen="end"; finishRun(); } else { const rr=runOf(S.run).rooms; S.room=rr[rr.indexOf(r)+1]; } render(); window.scrollTo(0,0); };
+}
+
+function updateStats(){ const h=$app.querySelector("header"); if(h) h.outerHTML=header(); }
+function reRender(id){ const y=window.scrollY; render(); window.scrollTo(0,y); const el=document.getElementById(id); const f=el&&el.querySelector("input,button:not(:disabled)"); if(f) f.focus({preventScroll:true}); }
+
+function renderEnd(){
+  const w=S.wrongs;
+  const list = w.length ? w.map(x=>noteCard(ROOMS[x.r].puzzles[x.p], ROOMS[x.r].title+" · 내가 고른 답: "+x.picked)).join("")
+    : `<article class="card"><div class="q">오답이 하나도 없어요.</div>다음엔 힌트 없이, 더 빠른 기록에 도전해 보세요.</article>`;
+  $app.innerHTML = `${header()}
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <div class="stamp" aria-hidden="true">脫</div>
+    <h1 style="text-align:center">서고를 빠져나왔습니다</h1>
+    ${S.newBest?`<p class="lead" style="text-align:center;margin:0 auto;color:var(--seal);font-weight:700">최고 기록이에요!</p>`:""}
+    <div class="result-grid">
+      <div><b>${fmt(S.elapsed)}</b><small>걸린 시간</small></div>
+      <div><b>${w.length}</b><small>틀린 문제</small></div>
+      <div><b>${S.hints}</b><small>힌트 사용</small></div>
+    </div>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <h2>오답 노트</h2>
+    <div class="wrong-list">${list}</div>
+  </section>
+  <div class="row"><button class="btn" id="again">처음부터 다시</button><button class="btn ghost" id="home">처음 화면</button>${w.length?`<button class="btn ghost" id="copy">오답 노트 복사</button>`:""}</div>
+  <div class="feedback" id="copyfb" role="status"></div>`;
+  document.getElementById("again").onclick=()=>{ const id=S.run; S=fresh(); S.run=id; S.room=runOf(id).rooms[0]; S.screen="room"; startTimer(); render(); window.scrollTo(0,0); };
+  document.getElementById("home").onclick=()=>{ S=fresh(); render(); window.scrollTo(0,0); };
+  const c=document.getElementById("copy");
+  if(c) c.onclick=async()=>{
+    const txt=w.map(x=>{const pz=ROOMS[x.r].puzzles[x.p]; return `- ${pz.verse?pz.verse+" / ":""}${pz.q}\n  정답: ${Array.isArray(pz.answer)?pz.answer[0]:pz.answer}${hj(pz)?" ("+hj(pz)+")":""}\n  ${pz.explain}`;}).join("\n");
+    try{ await navigator.clipboard.writeText("규장각 비밀 서고 오답 노트\n"+txt); document.getElementById("copyfb").textContent="복사했어요. 메모장이나 노트 앱에 붙여 넣으세요."; }
+    catch(e){ document.getElementById("copyfb").textContent="복사가 막혀 있어요. 위 내용을 길게 눌러 직접 선택해 주세요."; }
+  };
+}
+
+
+/* ───────── 문제은행 연습 모드 ───────── */
+const CHO="ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+function initialsOf(w){ return [...w].map(c=>{ const k=c.charCodeAt(0)-0xAC00; return (k>=0&&k<11172)?CHO[Math.floor(k/588)]:c; }).join(""); }
+function rnd(n){ return Math.floor(Math.random()*n); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=rnd(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function bkey(cat,word){ return cat+":"+word; }
+function itemOf(cat,word){ const it=BANK[cat].items.find(x=>x[0]===word); return it||null; }
+function sameGroup(cat,a,b){ return (BANK_GROUPS[cat]||[]).some(g=>g.includes(a)&&g.includes(b)); }
+function distractors(cat,word,n){
+  const pool=shuffle(BANK[cat].items.filter(x=>x[0]!==word && !sameGroup(cat,word,x[0])));
+  return pool.slice(0,n);
+}
+function makeQuestion(cat,item){
+  const B=BANK[cat], word=item[0];
+  if(B.kind==="pair"){
+    return {cat, word, type:"pair", prompt: cat==="loan" ? "바른 외래어 표기는?" : "바른 표기는?", options:shuffle([item[0],item[1]]), answer:item[0], note:item[2]||""};
+  }
+  const meaning = B.kind==="eng" ? item[1] : B.kind==="plain" ? item[1] : item[2];
+  const hanjaOf = it => B.kind==="hanja" ? (it[1]||"") : "";
+  const types=["m2w","w2m"];
+  if(B.kind==="hanja" && /^[가-힣]{2,6}$/.test(word)) types.push("init");
+  const type=types[rnd(types.length)];
+  const ds=distractors(cat,word,3);
+  if(type==="init") return {cat, word, type, prompt:meaning, initials:initialsOf(word), answer:word, hanja:hanjaOf(item)};
+  if(type==="m2w") return {cat, word, type, prompt:meaning,
+    options:shuffle([item,...ds]).map(it=>({text:it[0], sub:hanjaOf(it)})), answer:word, hanja:hanjaOf(item)};
+  const mOf = it => B.kind==="hanja" ? it[2] : it[1];
+  return {cat, word, type:"w2m", prompt:word, promptSub:hanjaOf(item),
+    options:shuffle([item,...ds]).map(it=>({text:mOf(it), sub:""})), answer:meaning, hanja:hanjaOf(item)};
+}
+function buildDrill(cat, onlyWords){
+  const items=BANK[cat].items;
+  let pick;
+  if(onlyWords && onlyWords.length){ pick=shuffle(onlyWords.map(w=>itemOf(cat,w)).filter(Boolean)); }
+  else {
+    const wrong=shuffle(items.filter(it=>(REC.btally||{})[bkey(cat,it[0])])).slice(0,3);
+    const rest=shuffle(items.filter(it=>!wrong.includes(it)));
+    pick=[...wrong,...rest].slice(0,10);
+    pick=shuffle(pick);
+  }
+  return {cat, qs:pick.map(it=>makeQuestion(cat,it)), i:0, correct:0, done:false, picked:null, wrongs:[]};
+}
+function explainOf(q){
+  const B=BANK[q.cat], it=itemOf(q.cat,q.word); if(!it) return "";
+  if(B.kind==="pair") return `<b>${esc(it[0])}</b> (✕ ${esc(it[1])}) · ${esc(it[2]||"")}`;
+  if(B.kind==="hanja") return `<b>${esc(it[0])}</b>${it[1]?` <span class="hanja">${esc(it[1])}</span>`:""} · ${esc(it[2])}`;
+  if(B.kind==="plain") return `<b>${esc(it[0])}</b> = ${esc(it[1])} · <span class="hanja">${esc(it[2]||"")}</span>`;
+  return `<b>${esc(it[0])}</b> · ${esc(it[1])}`;
+}
+let recT=null;
+function saveRec(){ REC.savedAt=Date.now(); lsSet(LS_R,REC); clearTimeout(recT); recT=setTimeout(()=>remoteWrite("records",REC),4000); }
+function answerDrill(val){
+  const D=S.drill, q=D.qs[D.i];
+  if(D.picked!==null) return;
+  const ok = q.type==="init" ? norm(val)===norm(q.answer) : val===q.answer;
+  D.picked=val; D.ok=ok;
+  REC.bank=REC.bank||{}; REC.btally=REC.btally||{};
+  const st=REC.bank[q.cat]||{seen:0,correct:0}; st.seen++; if(ok) st.correct++; REC.bank[q.cat]=st;
+  if(ok) D.correct++;
+  else { D.wrongs.push(q.word); const k=bkey(q.cat,q.word), t=REC.btally[k]||{count:0}; REC.btally[k]={count:t.count+1,last:new Date().toISOString()}; }
+  saveRec();
+}
+function renderDrill(){
+  const D=S.drill, B=BANK[D.cat];
+  if(D.done) return renderDrillEnd();
+  const q=D.qs[D.i], answered=D.picked!==null;
+  let body="";
+  if(q.type==="init"){
+    body = answered ? "" : `<p style="margin:0 0 8px;font-family:var(--display);font-size:1.5rem;letter-spacing:.3em">${esc(q.initials)}</p>
+      <form class="row" id="dform"><label for="din" style="position:absolute;left:-9999px">정답 입력</label>
+      <input id="din" autocomplete="off" placeholder="${q.answer.length}글자 입력"><button class="btn">확인</button></form>
+      <div class="row"><button class="small-btn" id="dskip">모르겠어요</button></div>`;
+  } else {
+    body = `<div class="opts${q.type==="pair"?"":""}">${q.options.map(o=>{ const t=typeof o==="string"?o:o.text, sub=typeof o==="string"?"":o.sub;
+      const cls = answered ? (t===q.answer?"right":(t===D.picked?"wrong":"")) : "";
+      return `<button class="opt ${cls}" data-v="${esc(t)}" ${answered?"disabled":""}>${esc(t)}${sub?` <span class="hanja">${esc(sub)}</span>`:""}</button>`; }).join("")}</div>`;
+  }
+  const head = q.type==="w2m"
+    ? `<div class="q" style="font-family:var(--display);font-weight:400;font-size:1.7rem">${esc(q.prompt)}${q.promptSub?` <span class="hanja" style="font-size:1rem">${esc(q.promptSub)}</span>`:""}</div><div class="meta">뜻으로 알맞은 것은?</div>`
+    : q.type==="pair" ? `<div class="q">${esc(q.prompt)}</div>`
+    : `<div class="meta">${q.type==="init"?"초성을 보고 쓰세요":"뜻에 알맞은 말은?"}</div><div class="q">${esc(q.prompt)}</div>`;
+  const fb = answered ? `<div class="explain"><span style="color:${D.ok?"var(--green)":"var(--seal)"};font-weight:700">${D.ok?"정답이에요.":"아쉬워요."}</span> ${explainOf(q)}</div>
+     <div class="row" style="margin-top:12px"><button class="btn" id="dnext">${D.i===D.qs.length-1?"결과 보기":"다음 문제"}</button></div>` : "";
+  $app.innerHTML = `${header()}
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <div class="row" style="justify-content:space-between;align-items:center"><button class="btn ghost" id="dquit">← 그만하기</button>
+      <span class="meta" style="font-variant-numeric:tabular-nums">${D.i+1} / ${D.qs.length} · 맞힘 ${D.correct}</span></div>
+    <div class="dbar" aria-hidden="true"><span style="width:${(D.i+(answered?1:0))/D.qs.length*100}%"></span></div>
+    <span class="tag">문제은행 · ${esc(B.name)}</span>
+    <article class="card" id="dcard"><div class="num">문제 ${D.i+1}</div>${head}${body}${fb}</article>
+  </section>`;
+  $app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{ answerDrill(b.dataset.v); renderDrill(); const n=document.getElementById("dnext"); if(n) n.focus({preventScroll:true}); });
+  const f=document.getElementById("dform");
+  if(f){ f.onsubmit=e=>{ e.preventDefault(); const v=document.getElementById("din").value; if(!norm(v)) return; answerDrill(v); renderDrill(); const n=document.getElementById("dnext"); if(n) n.focus({preventScroll:true}); };
+    document.getElementById("din").focus({preventScroll:true}); }
+  const sk=document.getElementById("dskip"); if(sk) sk.onclick=()=>{ answerDrill("\u0000"); renderDrill(); };
+  const nx=document.getElementById("dnext"); if(nx) nx.onclick=()=>{ D.picked=null; D.ok=null; if(D.i===D.qs.length-1) D.done=true; else D.i++; renderDrill(); window.scrollTo(0,0); };
+  document.getElementById("dquit").onclick=()=>{ S=fresh(); render(); window.scrollTo(0,0); };
+}
+function renderDrillEnd(){
+  const D=S.drill, B=BANK[D.cat], st=(REC.bank||{})[D.cat]||{seen:0,correct:0};
+  const wrongCards=D.wrongs.map(w=>{ const q={cat:D.cat,word:w}; return `<article class="card"><div class="explain" style="border:0;margin:0;padding:0">${explainOf(q)}</div></article>`; }).join("");
+  $app.innerHTML = `${header()}
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <span class="tag">문제은행 · ${esc(B.name)}</span>
+    <h1 style="font-size:clamp(2rem,6vw,3rem)">${D.correct} / ${D.qs.length} 맞혔어요</h1>
+    <div class="result-grid">
+      <div><b>${D.correct}</b><small>이번에 맞힘</small></div>
+      <div><b>${D.wrongs.length}</b><small>이번에 틀림</small></div>
+      <div><b>${st.seen?Math.round(st.correct/st.seen*100):0}%</b><small>누적 정답률</small></div>
+    </div>
+    <div class="row"><button class="btn" id="dmore">10문제 더</button>${D.wrongs.length?`<button class="btn ghost" id="dretry">틀린 것만 다시</button>`:""}<button class="btn ghost" id="dhome">처음 화면</button></div>
+  </section>
+  ${D.wrongs.length?`<section style="display:flex;flex-direction:column;gap:12px"><h2>이번에 틀린 문제</h2><div class="wrong-list">${wrongCards}</div></section>`:""}`;
+  document.getElementById("dmore").onclick=()=>{ S.drill=buildDrill(D.cat); renderDrill(); window.scrollTo(0,0); };
+  const rt=document.getElementById("dretry"); if(rt) rt.onclick=()=>{ S.drill=buildDrill(D.cat, D.wrongs); renderDrill(); window.scrollTo(0,0); };
+  document.getElementById("dhome").onclick=()=>{ S=fresh(); render(); window.scrollTo(0,0); };
+}
+function bankTallyList(){
+  return Object.entries(REC.btally||{}).map(([k,v])=>{ const i=k.indexOf(":"), cat=k.slice(0,i), word=k.slice(i+1); return {cat,word,count:v.count,last:v.last}; })
+    .filter(t=>BANK[t.cat] && itemOf(t.cat,t.word)).sort((a,b)=>b.count-a.count || String(b.last).localeCompare(String(a.last)));
+}
+function bankSection(){
+  const total=BANK_ORDER.reduce((n,c)=>n+BANK[c].items.length,0);
+  return `<section style="display:flex;flex-direction:column;gap:12px">
+    <h2>문제은행 연습</h2>
+    <p class="lead">영역을 고르면 10문제씩 무작위로 나와요. 전에 틀린 문제가 먼저 섞여 나옵니다. 모두 ${total}개 항목.</p>
+    <div class="bank">${BANK_ORDER.map(c=>{ const B=BANK[c], st=(REC.bank||{})[c];
+      return `<button class="bankbtn" data-cat="${c}"><span class="bname">${esc(B.name)}</span><span class="meta">${esc(B.sub)} · ${B.items.length}개</span><span class="meta">${st&&st.seen?`정답률 ${Math.round(st.correct/st.seen*100)}% · ${st.seen}문제 풂`:"아직 안 풂"}</span></button>`; }).join("")}</div>
+  </section>`;
+}
+
+/* ── 저장: 이 브라우저(localStorage) + 내 claude.ai 계정(db, 다른 기기에서도) ── */
+const LS_P="kyujang.progress.v1", LS_R="kyujang.records.v1";
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function emptyRec(){ return {runs:[], bestBy:{}, tally:{}, savedAt:0}; }
+function migrate(rec){ if(rec.best && !rec.bestBy){ rec.bestBy={main:rec.best}; } rec.bestBy=rec.bestBy||{}; delete rec.best; (rec.runs||[]).forEach(r=>{ if(!r.run) r.run="main"; }); return rec; }
+let SAVED_P = lsGet(LS_P) || {screen:"none", savedAt:0};
+let REC = migrate(Object.assign(emptyRec(), lsGet(LS_R) || {}));
+const store = {db:null, uid:null, mode:"local"};
+function saveLabel(){
+  if(store.user) return (store.mode==="error" ? "저장 오류 · 이 기기에만 저장" : "구글 계정에 저장됨");
+  return "이 기기에만 저장";
+}
+function authButton(){
+  if(!window.KY_CLOUD) return "";
+  if(!window.KY_CLOUD.ready) return `<span class="save">로그인 설정 전</span>`;
+  return store.user ? `<button class="save authbtn" data-auth="out" title="${esc(store.user.name||"")}">로그아웃</button>`
+                    : `<button class="save authbtn" data-auth="in">구글로 로그인</button>`;
+}
+function setMode(m){ store.mode=m; const b=document.getElementById("savebadge"); if(b) b.textContent=saveLabel(); }
+function fixRoom(P){ if(P && P.roomId){ const i=ROOMS.findIndex(x=>x.id===P.roomId); if(i>=0) P.room=i; } return P; }
+function hasProgress(){ fixRoom(SAVED_P); return SAVED_P && SAVED_P.screen==="room" && ROOMS[SAVED_P.room] && runOf(SAVED_P.run||"main").rooms.includes(SAVED_P.room); }
+
+const pend={}, busy={};
+async function remoteWrite(name, data){
+  if(!store.db || !store.uid) return;
+  pend[name]=data;
+  if(busy[name]) return;
+  busy[name]=true;
+  while(pend[name]){
+    const d=pend[name]; pend[name]=null;
+    try{ await store.db.doc("data/users/"+store.uid+"/"+name).set(d); setMode("cloud"); }
+    catch(e){
+      if(e && e.code==="unavailable"){ await new Promise(r=>setTimeout(r,800+Math.random()*800)); if(!pend[name]) pend[name]=d; continue; }
+      setMode("error"); if(e && (e.code==="invalid_argument"||e.code==="revoked")) store.db=null; break;
+    }
+  }
+  busy[name]=false;
+}
+let saveT=null, lastSaved="";
+function saveProgress(){
+  if(S.screen!=="room") return;
+  const body={screen:"room", run:S.run, seed:S.seed, room:S.room, roomId:ROOMS[S.room].id, solved:S.solved, picked:S.picked, wrongs:S.wrongs, hints:S.hints, lockOpen:S.lockOpen, elapsed:Math.floor(now())};
+  const sig=JSON.stringify({...body, elapsed:0});
+  if(sig===lastSaved) return;
+  lastSaved=sig;
+  SAVED_P={...body, savedAt:Date.now()};
+  lsSet(LS_P,SAVED_P);
+  clearTimeout(saveT); saveT=setTimeout(()=>remoteWrite("progress",SAVED_P),2500);
+}
+function clearProgress(){ SAVED_P={screen:"none", savedAt:Date.now()}; lastSaved=""; lsSet(LS_P,SAVED_P); clearTimeout(saveT); remoteWrite("progress",SAVED_P); }
+function finishRun(){
+  const run={run:S.run, date:new Date().toISOString(), time:Math.floor(S.elapsed), wrongs:S.wrongs.length, hints:S.hints};
+  REC.bestBy=REC.bestBy||{};
+  const prev=REC.bestBy[S.run];
+  S.newBest = !prev || run.time < prev.time;
+  if(S.newBest) REC.bestBy[S.run]=run;
+  REC.runs=[run, ...REC.runs].slice(0,30);
+  S.wrongs.forEach(w=>{ const k=key(w.r,w.p); const t=REC.tally[k]||{count:0}; REC.tally[k]={count:t.count+1, last:run.date}; });
+  REC.savedAt=Date.now();
+  lsSet(LS_R,REC); remoteWrite("records",REC);
+  clearProgress();
+}
+function tallyList(){
+  return Object.entries(REC.tally||{}).map(([k,v])=>{ const i=k.lastIndexOf("-"), id=k.slice(0,i), p=Number(k.slice(i+1)); const r=ROOMS.findIndex(x=>x.id===id); return {r,p,pz:r>=0&&ROOMS[r].puzzles[p],count:v.count,last:v.last}; })
+    .filter(t=>t.pz).sort((a,b)=>b.count-a.count || String(b.last).localeCompare(String(a.last)));
+}
+
+/* Firebase 연결: 아래 module 스크립트가 로그인 상태가 바뀔 때마다 kyOnAuth를 부름 */
+async function syncCloud(){
+  const db=store.db, uid=store.uid; if(!db||!uid) return;
+  try{
+    const [pSnap,rSnap]=await Promise.all([db.doc("data/users/"+uid+"/progress").get(), db.doc("data/users/"+uid+"/records").get()]);
+    const rp=pSnap.exists?pSnap.data():null, rr=rSnap.exists?rSnap.data():null;
+    let changed=false;
+    if(rp && (rp.savedAt||0) > (SAVED_P.savedAt||0)){ SAVED_P=JSON.parse(JSON.stringify(rp)); lsSet(LS_P,SAVED_P); changed=true; }
+    else if((SAVED_P.savedAt||0) > ((rp&&rp.savedAt)||0)) remoteWrite("progress",SAVED_P);
+    if(rr && (rr.savedAt||0) > (REC.savedAt||0)){ REC=migrate(Object.assign(emptyRec(), JSON.parse(JSON.stringify(rr)))); lsSet(LS_R,REC); changed=true; }
+    else if((REC.savedAt||0) > ((rr&&rr.savedAt)||0)) remoteWrite("records",REC);
+    setMode("cloud");
+    if(changed && (S.screen==="intro"||S.screen==="notes")) render();
+  }catch(e){ console.warn(e); setMode("error"); }
+}
+window.kyOnAuth=(user, adapter)=>{
+  store.user=user; store.db=user?adapter:null; store.uid=user?user.uid:null;
+  setMode(user?"cloud":"local"); updateStats();
+  if(user) syncCloud();
+};
+function connectCloud(){}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-auth]"); if(!b||!window.KY_CLOUD) return;
+  if(b.dataset.auth==="in") window.KY_CLOUD.login().catch(err=>{ console.warn(err); setMode("error"); });
+  else window.KY_CLOUD.logout();
+});
+document.addEventListener("visibilitychange",()=>{ if(document.hidden && S.screen==="room"){ lastSaved=""; saveProgress(); } });
+function start(saved){
+  if(saved && saved.screen){ S=Object.assign(fresh(),saved); if(S.screen==="room"){ S.startedAt=null; startTimer(); } }
+  render();
+  connectCloud();
+}
+window.claude?.hot?.snapshot?.(()=>({...S, elapsed:now(), startedAt:null}));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js";
+
+window.KY_CLOUD = { ready:false };
+const configured = firebaseConfig && firebaseConfig.apiKey && !String(firebaseConfig.apiKey).startsWith("여기에");
+if(configured){
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app), fs = getFirestore(app);
+  const adapter = { doc: path => ({
+    get: async () => { const s = await getDoc(doc(fs, path)); return { exists: s.exists(), data: () => s.data() }; },
+    set: data => setDoc(doc(fs, path), JSON.parse(JSON.stringify(data)))
+  })};
+  window.KY_CLOUD = {
+    ready:true,
+    login: () => signInWithPopup(auth, new GoogleAuthProvider()),
+    logout: () => signOut(auth)
+  };
+  onAuthStateChanged(auth, u => window.kyOnAuth(u ? { uid:u.uid, name:u.displayName||"" } : null, adapter));
+}
+window.kyOnAuth && window.kyOnAuth(null, null);
+</script>
+</body>
+</html>
