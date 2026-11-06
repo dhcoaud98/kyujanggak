@@ -113,7 +113,7 @@ h2{font-family:var(--display);font-weight:400;font-size:1.8rem;margin:0;text-wra
 .wing h3{margin:0;font-family:var(--display);font-weight:400;font-size:1.6rem}
 .wing p{margin:0 0 6px;font-size:.95rem;color:#5a4d37}
 .wing .meta{font-size:.82rem;color:var(--muted)}
-.wing .btn{margin-top:auto;align-self:flex-start}
+.wing .row{margin-top:auto}
 .bank{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .bankbtn{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--seal);padding:14px 16px;text-align:left;display:flex;flex-direction:column;gap:2px;color:var(--ink)}
 .bankbtn:hover{border-color:var(--ink)}
@@ -142,8 +142,15 @@ h2{font-family:var(--display);font-weight:400;font-size:1.8rem;margin:0;text-wra
 <script>
 RUNS.forEach(r=>{ r.rooms=r.rooms.map(id=>typeof id==="number"?id:ROOMS.findIndex(x=>x.id===id)).filter(i=>i>=0); });
 /* ───────── 오늘의 서고: 문제은행에서 매번 새 방 5개를 만드는 관 ───────── */
-RUNS.push({id:"random", name:"오늘의 서고", sub:"들어갈 때마다 새 문제", desc:"문제은행에서 무작위로 뽑아 방 5개를 새로 만들어요. 문제은행에 항목이 늘면 자동으로 반영돼요.", rooms:[], random:true});
+RUNS.push({id:"random", name:"오늘의 서고", sub:"5개 영역 골고루", desc:"문제은행에서 무작위로 뽑아 방 5개를 새로 만들어요. 문제은행에 항목이 늘면 자동으로 반영돼요.", rooms:[], random:true});
 const GEN_PLAN=[["idiom","사자성어"],["oldword","고전 시가 어휘"],["novel","고전 소설·판소리 어휘"],["spell|loan","맞춤법·외래어 표기"],["eng","수능 영단어"]];
+/* 관마다 '새 문제'로 들어갈 때 어느 영역에서 뽑을지 */
+const PLANS={
+  main:[["idiom","사자성어"],["oldword","고전 시가 어휘"],["novel","고전 소설 어휘"],["eng","수능 영단어"],["eng","수능 영단어"]],
+  idiom:[["idiom","사자성어"],["idiom","사자성어"],["idiom","사자성어"],["idiom","사자성어"],["idiom","사자성어"]],
+  novel:[["novel","고전 소설·판소리 어휘"],["novel","고전 소설·판소리 어휘"],["novel","고전 소설·판소리 어휘"],["novel","고전 소설·판소리 어휘"]],
+  random:GEN_PLAN
+};
 function firstClue(w){ const c=[...w][0]; return /[a-z]/i.test(c) ? c.toUpperCase() : c; }
 function plainExplain(cat,it){
   const B=BANK[cat];
@@ -152,9 +159,11 @@ function plainExplain(cat,it){
   if(B.kind==="plain") return `${it[0]} = ${it[1]} · ${it[2]||""}`;
   return `${it[0]}: ${it[1]}`;
 }
-function genRun(){
+function genRun(runId){
+  runId=runId||"random";
+  const plan=PLANS[runId]||GEN_PLAN, runName=runOf(runId).name;
   const used=new Set();
-  const rooms=GEN_PLAN.map(([cats,label],ri)=>{
+  const rooms=plan.map(([cats,label],ri)=>{
     const pool=shuffle(cats.split("|").flatMap(c=>BANK[c].items.map(it=>({c,it})))).filter(x=>!used.has(x.c+":"+x.it[0]));
     const pick=pool.slice(0,4); pick.forEach(x=>used.add(x.c+":"+x.it[0]));
     const puzzles=pick.map(({c,it})=>{
@@ -165,23 +174,24 @@ function genRun(){
         oh:Object.fromEntries(q.options.filter(o=>o.sub).map(o=>[o.text,o.sub])), answer:q.answer, hanja:q.hanja||""};
       return {...base, type:"mc", q:`'${q.prompt}'${q.promptSub?"("+q.promptSub+")":""}의 뜻으로 알맞은 것은?`, options:q.options.map(o=>o.text), answer:q.answer};
     });
-    return {id:"gen-"+(ri+1), gen:true, subject:label, title:`오늘의 서고 제${ri+1}실 · ${label}`,
+    return {id:"gen-"+runId+"-"+(ri+1), gen:true, subject:label, title:`${runName} 제${ri+1}실 · ${label}`,
       story:"오늘 새로 들어온 서책 네 권이 책상 위에 놓여 있다. 문제를 풀면 정답의 첫 글자가 단서로 찍힌다.",
       lockLabel:"단서 네 글자", lockType:"text", lockPrompt:"네 정답의 첫 글자를 순서대로 이어 입력하세요.",
       lockAnswer:[puzzles.map(x=>x.clue).join("")], lockHint:"카드 오른쪽 위에 찍힌 단서를 문제 1부터 순서대로 이어 쓰면 돼요.", puzzles};
   });
-  return {date:new Date().toISOString(), rooms};
+  return {run:runId, date:new Date().toISOString(), rooms};
 }
 function installGen(gen){
   if(!gen || !gen.rooms) return;
   for(let i=ROOMS.length-1;i>=0;i--) if(ROOMS[i].gen) ROOMS.splice(i,1);
   const start=ROOMS.length; gen.rooms.forEach(r=>ROOMS.push(r));
-  RUNS.find(x=>x.id==="random").rooms=gen.rooms.map((_,i)=>start+i);
+  gen.idx=gen.rooms.map((_,i)=>start+i);
 }
-function startRun(id){
-  const prev=S; S=fresh(); S.run=id;
-  if(id==="random"){ S.gen=genRun(); installGen(S.gen); }
-  S.room=runOf(id).rooms[0]; S.screen="room"; startTimer(); render(); window.scrollTo(0,0);
+function curRooms(){ return (S.gen && S.gen.idx) ? S.gen.idx : runOf(S.run).rooms; }
+function startRun(id, mode){
+  S=fresh(); S.run=id;
+  if(id==="random" || mode!=="fixed"){ S.gen=genRun(id); installGen(S.gen); }
+  S.room=curRooms()[0]; S.screen="room"; startTimer(); render(); window.scrollTo(0,0);
 }
 function runOf(id){ return RUNS.find(x=>x.id===id) || RUNS[0]; }
 const $app = document.getElementById("app");
@@ -189,7 +199,7 @@ let S = fresh();
 let tick = null;
 
 function fresh(){ return {screen:"intro", run:"main", seed:1+Math.floor(Math.random()*99999), room:0, solved:{}, picked:{}, wrongs:[], hints:0, elapsed:0, startedAt:null, lockOpen:false}; }
-function isLast(r){ const rr=runOf(S.run).rooms; return rr.indexOf(r)===rr.length-1; }
+function isLast(r){ const rr=curRooms(); return rr.indexOf(r)===rr.length-1; }
 function hj(pz){ return pz.hanja || (pz.oh && pz.oh[pz.answer]) || ""; }
 function key(r,p){ return (ROOMS[r]&&ROOMS[r].id ? ROOMS[r].id : r)+"-"+p; }
 function norm(s){ return (s||"").replace(/\s+/g,"").toUpperCase(); }
@@ -208,8 +218,8 @@ function addWrong(r,p,picked){
 }
 
 function header(){
-  const run=runOf(S.run), pos=run.rooms.indexOf(S.room);
-  const dots=(S.screen==="room"||S.screen==="end") ? run.rooms.map((ri,i)=>`<span class="${i<pos||S.screen==="end"?"done":i===pos?"now":""}" title="${esc(ROOMS[ri].title)}">${i+1}</span>`).join("") : "";
+  const run=runOf(S.run), rr=curRooms(), pos=rr.indexOf(S.room);
+  const dots=(S.screen==="room"||S.screen==="end") ? rr.map((ri,i)=>`<span class="${i<pos||S.screen==="end"?"done":i===pos?"now":""}" title="${esc(ROOMS[ri].title)}">${i+1}</span>`).join("") : "";
   return `<header><button class="brand" data-home aria-label="처음 화면으로"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 10c4-1 6-4 10-5 4 1 6 4 10 5"></path><path d="M5 10v10M19 10v10M9 20v-6h6v6"></path></svg><span>규장각 비밀 서고${S.screen==="room"||S.screen==="end"?` · ${esc(run.name)}`:""}</span></button>
     <div class="rooms" aria-label="방 진행">${dots}</div>
     <div class="stats">${(S.screen==="room"||S.screen==="end")?`<span>시간 <b id="t">${fmt(now())}</b></span><span>오답 <b>${S.wrongs.length}</b></span><span>힌트 <b>${S.hints}</b></span>`:""}<span class="save" id="savebadge">${saveLabel()}</span>${authButton()}</div></header>`;
@@ -239,13 +249,13 @@ function renderIntro(){
       <div class="q" style="font-family:var(--display);font-weight:400;font-size:1.4rem;margin:4px 0 12px">${esc(ROOMS[P.room].title)}</div>
       <div class="row"><button class="btn" id="resume">계속 풀기</button></div>
     </article>`:""}
-    <div class="wings">${RUNS.map(r=>{ const b=(REC.bestBy||{})[r.id]; const n=r.random ? GEN_PLAN.length*4 : r.rooms.reduce((k,i)=>k+ROOMS[i].puzzles.length,0);
+    <div class="wings">${RUNS.map(r=>{ const b=(REC.bestBy||{})[r.id]; const pl=PLANS[r.id], n=pl ? pl.length*4 : r.rooms.reduce((k,i)=>k+ROOMS[i].puzzles.length,0);
       return `<article class="wing">
-        <div class="meta">${esc(r.sub)} · 방 ${r.random?GEN_PLAN.length:r.rooms.length}개 · ${n}문제</div>
+        <div class="meta">${esc(r.sub)} · 방 ${pl?pl.length:r.rooms.length}개 · ${n}문제 · 매번 새 문제</div>
         <h3>${esc(r.name)}</h3>
         <p>${esc(r.desc)}</p>
         <div class="meta">${b?`최고 기록 ${fmt(b.time)}`:"아직 기록 없음"}</div>
-        <button class="btn${P?" ghost":""}" data-run="${r.id}">${P&&P.run===r.id?"처음부터 새로":"입장하기"}</button>
+        <div class="row"><button class="btn${P?" ghost":""}" data-run="${r.id}" data-mode="new">${P&&P.run===r.id?"새 문제로 다시":"입장하기"}</button>${r.random?"":`<button class="btn ghost small" data-run="${r.id}" data-mode="fixed" title="처음 설계된 퍼즐 방으로 풀기">기본 문제</button>`}</div>
       </article>`; }).join("")}</div>
   </section>
   ${bankSection()}
@@ -259,7 +269,7 @@ function renderIntro(){
     <div class="row"><button class="btn" id="introreview">오답 다시 풀기</button><button class="btn ghost" id="notes">누적 오답 노트 (${tally.length+btl.length}문제)</button></div>
   </section>`:""}`;
   $app.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{ S=fresh(); S.screen="drill"; S.drill=buildDrill(b.dataset.cat); render(); window.scrollTo(0,0); });
-  $app.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>startRun(b.dataset.run));
+  $app.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>startRun(b.dataset.run, b.dataset.mode));
   const rs=document.getElementById("resume");
   if(rs) rs.onclick=()=>{ S=Object.assign(fresh(),{run:"main"},SAVED_P,{startedAt:null}); startTimer(); render(); window.scrollTo(0,0); };
   const nb=document.getElementById("notes");
@@ -382,7 +392,7 @@ function bindRoom(r){
   const lh=document.getElementById("lockhint");
   if(lh) lh.onclick=()=>{ S.hints++; document.getElementById("lockfb").textContent="힌트: "+R.lockHint; updateStats(); saveProgress(); };
   const nx=document.getElementById("next");
-  if(nx) nx.onclick=()=>{ S.lockOpen=false; if(isLast(r)){ stopTimer(); S.screen="end"; finishRun(); } else { const rr=runOf(S.run).rooms; S.room=rr[rr.indexOf(r)+1]; } render(); window.scrollTo(0,0); };
+  if(nx) nx.onclick=()=>{ S.lockOpen=false; if(isLast(r)){ stopTimer(); S.screen="end"; finishRun(); } else { const rr=curRooms(); S.room=rr[rr.indexOf(r)+1]; } render(); window.scrollTo(0,0); };
 }
 
 function goHome(){
@@ -413,9 +423,9 @@ function renderEnd(){
     <h2>오답 노트</h2>
     <div class="wrong-list">${list}</div>
   </section>
-  <div class="row"><button class="btn" id="again">${S.run==="random"?"새 문제로 다시":"처음부터 다시"}</button><button class="btn ghost" id="home">처음 화면</button>${w.length?`<button class="btn ghost" id="copy">오답 노트 복사</button>`:""}</div>
+  <div class="row"><button class="btn" id="again">${S.gen?"새 문제로 다시":"처음부터 다시"}</button><button class="btn ghost" id="home">처음 화면</button>${w.length?`<button class="btn ghost" id="copy">오답 노트 복사</button>`:""}</div>
   <div class="feedback" id="copyfb" role="status"></div>`;
-  document.getElementById("again").onclick=()=>startRun(S.run);
+  document.getElementById("again").onclick=()=>startRun(S.run, S.gen?"new":"fixed");
   document.getElementById("home").onclick=()=>{ S=fresh(); render(); window.scrollTo(0,0); };
   const c=document.getElementById("copy");
   if(c) c.onclick=async()=>{
@@ -622,7 +632,7 @@ function authButton(){
 }
 function setMode(m){ store.mode=m; const b=document.getElementById("savebadge"); if(b) b.textContent=saveLabel(); }
 function fixRoom(P){ if(P && P.roomId){ const i=ROOMS.findIndex(x=>x.id===P.roomId); if(i>=0) P.room=i; } return P; }
-function hasProgress(){ if(SAVED_P && SAVED_P.gen) installGen(SAVED_P.gen); fixRoom(SAVED_P); return SAVED_P && SAVED_P.screen==="room" && ROOMS[SAVED_P.room] && runOf(SAVED_P.run||"main").rooms.includes(SAVED_P.room); }
+function hasProgress(){ if(SAVED_P && SAVED_P.gen) installGen(SAVED_P.gen); fixRoom(SAVED_P); return SAVED_P && SAVED_P.screen==="room" && ROOMS[SAVED_P.room] && (SAVED_P.gen&&SAVED_P.gen.idx ? SAVED_P.gen.idx : runOf(SAVED_P.run||"main").rooms).includes(SAVED_P.room); }
 
 const pend={}, busy={};
 async function remoteWrite(name, data){
