@@ -603,7 +603,7 @@ const BANK_GROUPS = {
 const BANK_ORDER=["idiom","oldword","novel","spell","loan","eng"];
 
 const RUNS = [
-  {id:"main",  name:"본관",       sub:"국어 · 영어 종합", desc:"사자성어, 고전 시가 어휘, 영어 혼동 어휘", rooms:["main-1","main-2","main-3","main-4","main-5"]},
-  {id:"idiom", name:"사자성어관", sub:"사자성어 25개",    desc:"초성 쓰기와 뜻 고르기, 자물쇠도 사자성어", rooms:["idiom-1","idiom-2","idiom-3","idiom-4","idiom-5"]},
-  {id:"novel", name:"고전 소설관", sub:"고전 소설 어휘",  desc:"화설·각설, 관아와 벼슬, 홍길동전·흥부전", rooms:["novel-1","novel-2","novel-3","novel-4"]}
+  {id:"main",  name:"본관",       sub:"국어 · 영어 종합", desc:"사자성어, 고전 시가·소설 어휘, 수능 영단어를 골고루", rooms:["main-1","main-2","main-3","main-4","main-5"]},
+  {id:"idiom", name:"사자성어관", sub:"사자성어 130개에서 출제", desc:"초성 쓰기와 뜻 고르기로 사자성어 집중 훈련", rooms:["idiom-1","idiom-2","idiom-3","idiom-4","idiom-5"]},
+  {id:"novel", name:"고전 소설관", sub:"고전 소설·판소리 어휘", desc:"인물·관직·서술 표현부터 판소리 용어까지", rooms:["novel-1","novel-2","novel-3","novel-4"]}
 ];
