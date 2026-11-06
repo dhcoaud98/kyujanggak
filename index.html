@@ -141,6 +141,48 @@ h2{font-family:var(--display);font-weight:400;font-size:1.8rem;margin:0;text-wra
 <script src="questions.js"></script>
 <script>
 RUNS.forEach(r=>{ r.rooms=r.rooms.map(id=>typeof id==="number"?id:ROOMS.findIndex(x=>x.id===id)).filter(i=>i>=0); });
+/* ───────── 오늘의 서고: 문제은행에서 매번 새 방 5개를 만드는 관 ───────── */
+RUNS.push({id:"random", name:"오늘의 서고", sub:"들어갈 때마다 새 문제", desc:"문제은행에서 무작위로 뽑아 방 5개를 새로 만들어요. 문제은행에 항목이 늘면 자동으로 반영돼요.", rooms:[], random:true});
+const GEN_PLAN=[["idiom","사자성어"],["oldword","고전 시가 어휘"],["novel","고전 소설·판소리 어휘"],["spell|loan","맞춤법·외래어 표기"],["eng","수능 영단어"]];
+function firstClue(w){ const c=[...w][0]; return /[a-z]/i.test(c) ? c.toUpperCase() : c; }
+function plainExplain(cat,it){
+  const B=BANK[cat];
+  if(B.kind==="pair") return `${it[0]} (✕ ${it[1]}) · ${it[2]||""}`;
+  if(B.kind==="hanja") return `${it[0]}${it[1]?"("+it[1]+")":""}: ${it[2]}`;
+  if(B.kind==="plain") return `${it[0]} = ${it[1]} · ${it[2]||""}`;
+  return `${it[0]}: ${it[1]}`;
+}
+function genRun(){
+  const used=new Set();
+  const rooms=GEN_PLAN.map(([cats,label],ri)=>{
+    const pool=shuffle(cats.split("|").flatMap(c=>BANK[c].items.map(it=>({c,it})))).filter(x=>!used.has(x.c+":"+x.it[0]));
+    const pick=pool.slice(0,4); pick.forEach(x=>used.add(x.c+":"+x.it[0]));
+    const puzzles=pick.map(({c,it})=>{
+      const q=makeQuestion(c,it), base={clue:firstClue(it[0]), explain:plainExplain(c,it), bank:{cat:c,word:it[0]}};
+      if(q.type==="init") return {...base, type:"text", q:q.prompt, initials:q.initials, answer:[q.answer], hanja:q.hanja||""};
+      if(q.type==="pair") return {...base, type:"mc", q:q.prompt, options:q.options, answer:q.answer};
+      if(q.type==="m2w") return {...base, type:"mc", q:q.prompt, options:q.options.map(o=>o.text),
+        oh:Object.fromEntries(q.options.filter(o=>o.sub).map(o=>[o.text,o.sub])), answer:q.answer, hanja:q.hanja||""};
+      return {...base, type:"mc", q:`'${q.prompt}'${q.promptSub?"("+q.promptSub+")":""}의 뜻으로 알맞은 것은?`, options:q.options.map(o=>o.text), answer:q.answer};
+    });
+    return {id:"gen-"+(ri+1), gen:true, subject:label, title:`오늘의 서고 제${ri+1}실 · ${label}`,
+      story:"오늘 새로 들어온 서책 네 권이 책상 위에 놓여 있다. 문제를 풀면 정답의 첫 글자가 단서로 찍힌다.",
+      lockLabel:"단서 네 글자", lockType:"text", lockPrompt:"네 정답의 첫 글자를 순서대로 이어 입력하세요.",
+      lockAnswer:[puzzles.map(x=>x.clue).join("")], lockHint:"카드 오른쪽 위에 찍힌 단서를 문제 1부터 순서대로 이어 쓰면 돼요.", puzzles};
+  });
+  return {date:new Date().toISOString(), rooms};
+}
+function installGen(gen){
+  if(!gen || !gen.rooms) return;
+  for(let i=ROOMS.length-1;i>=0;i--) if(ROOMS[i].gen) ROOMS.splice(i,1);
+  const start=ROOMS.length; gen.rooms.forEach(r=>ROOMS.push(r));
+  RUNS.find(x=>x.id==="random").rooms=gen.rooms.map((_,i)=>start+i);
+}
+function startRun(id){
+  const prev=S; S=fresh(); S.run=id;
+  if(id==="random"){ S.gen=genRun(); installGen(S.gen); }
+  S.room=runOf(id).rooms[0]; S.screen="room"; startTimer(); render(); window.scrollTo(0,0);
+}
 function runOf(id){ return RUNS.find(x=>x.id===id) || RUNS[0]; }
 const $app = document.getElementById("app");
 let S = fresh();
@@ -197,9 +239,9 @@ function renderIntro(){
       <div class="q" style="font-family:var(--display);font-weight:400;font-size:1.4rem;margin:4px 0 12px">${esc(ROOMS[P.room].title)}</div>
       <div class="row"><button class="btn" id="resume">계속 풀기</button></div>
     </article>`:""}
-    <div class="wings">${RUNS.map(r=>{ const b=(REC.bestBy||{})[r.id]; const n=r.rooms.reduce((k,i)=>k+ROOMS[i].puzzles.length,0);
+    <div class="wings">${RUNS.map(r=>{ const b=(REC.bestBy||{})[r.id]; const n=r.random ? GEN_PLAN.length*4 : r.rooms.reduce((k,i)=>k+ROOMS[i].puzzles.length,0);
       return `<article class="wing">
-        <div class="meta">${esc(r.sub)} · 방 ${r.rooms.length}개 · ${n}문제</div>
+        <div class="meta">${esc(r.sub)} · 방 ${r.random?GEN_PLAN.length:r.rooms.length}개 · ${n}문제</div>
         <h3>${esc(r.name)}</h3>
         <p>${esc(r.desc)}</p>
         <div class="meta">${b?`최고 기록 ${fmt(b.time)}`:"아직 기록 없음"}</div>
@@ -217,7 +259,7 @@ function renderIntro(){
     <div class="row"><button class="btn" id="introreview">오답 다시 풀기</button><button class="btn ghost" id="notes">누적 오답 노트 (${tally.length+btl.length}문제)</button></div>
   </section>`:""}`;
   $app.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{ S=fresh(); S.screen="drill"; S.drill=buildDrill(b.dataset.cat); render(); window.scrollTo(0,0); });
-  $app.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>{ const id=b.dataset.run; S=fresh(); S.run=id; S.room=runOf(id).rooms[0]; S.screen="room"; startTimer(); render(); window.scrollTo(0,0); });
+  $app.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>startRun(b.dataset.run));
   const rs=document.getElementById("resume");
   if(rs) rs.onclick=()=>{ S=Object.assign(fresh(),{run:"main"},SAVED_P,{startedAt:null}); startTimer(); render(); window.scrollTo(0,0); };
   const nb=document.getElementById("notes");
@@ -371,9 +413,9 @@ function renderEnd(){
     <h2>오답 노트</h2>
     <div class="wrong-list">${list}</div>
   </section>
-  <div class="row"><button class="btn" id="again">처음부터 다시</button><button class="btn ghost" id="home">처음 화면</button>${w.length?`<button class="btn ghost" id="copy">오답 노트 복사</button>`:""}</div>
+  <div class="row"><button class="btn" id="again">${S.run==="random"?"새 문제로 다시":"처음부터 다시"}</button><button class="btn ghost" id="home">처음 화면</button>${w.length?`<button class="btn ghost" id="copy">오답 노트 복사</button>`:""}</div>
   <div class="feedback" id="copyfb" role="status"></div>`;
-  document.getElementById("again").onclick=()=>{ const id=S.run; S=fresh(); S.run=id; S.room=runOf(id).rooms[0]; S.screen="room"; startTimer(); render(); window.scrollTo(0,0); };
+  document.getElementById("again").onclick=()=>startRun(S.run);
   document.getElementById("home").onclick=()=>{ S=fresh(); render(); window.scrollTo(0,0); };
   const c=document.getElementById("copy");
   if(c) c.onclick=async()=>{
@@ -580,7 +622,7 @@ function authButton(){
 }
 function setMode(m){ store.mode=m; const b=document.getElementById("savebadge"); if(b) b.textContent=saveLabel(); }
 function fixRoom(P){ if(P && P.roomId){ const i=ROOMS.findIndex(x=>x.id===P.roomId); if(i>=0) P.room=i; } return P; }
-function hasProgress(){ fixRoom(SAVED_P); return SAVED_P && SAVED_P.screen==="room" && ROOMS[SAVED_P.room] && runOf(SAVED_P.run||"main").rooms.includes(SAVED_P.room); }
+function hasProgress(){ if(SAVED_P && SAVED_P.gen) installGen(SAVED_P.gen); fixRoom(SAVED_P); return SAVED_P && SAVED_P.screen==="room" && ROOMS[SAVED_P.room] && runOf(SAVED_P.run||"main").rooms.includes(SAVED_P.room); }
 
 const pend={}, busy={};
 async function remoteWrite(name, data){
@@ -601,7 +643,7 @@ async function remoteWrite(name, data){
 let saveT=null, lastSaved="";
 function saveProgress(){
   if(S.screen!=="room") return;
-  const body={screen:"room", run:S.run, seed:S.seed, room:S.room, roomId:ROOMS[S.room].id, solved:S.solved, picked:S.picked, wrongs:S.wrongs, hints:S.hints, lockOpen:S.lockOpen, elapsed:Math.floor(now())};
+  const body={screen:"room", run:S.run, seed:S.seed, room:S.room, roomId:ROOMS[S.room].id, gen:S.gen||null, solved:S.solved, picked:S.picked, wrongs:S.wrongs, hints:S.hints, lockOpen:S.lockOpen, elapsed:Math.floor(now())};
   const sig=JSON.stringify({...body, elapsed:0});
   if(sig===lastSaved) return;
   lastSaved=sig;
@@ -617,7 +659,9 @@ function finishRun(){
   S.newBest = !prev || run.time < prev.time;
   if(S.newBest) REC.bestBy[S.run]=run;
   REC.runs=[run, ...REC.runs].slice(0,30);
-  S.wrongs.forEach(w=>{ const k=key(w.r,w.p); const t=REC.tally[k]||{count:0}; REC.tally[k]={count:t.count+1, last:run.date}; });
+  S.wrongs.forEach(w=>{ const R=ROOMS[w.r], pz=R&&R.puzzles[w.p]; if(!pz) return;
+    if(R.gen){ if(pz.bank){ REC.btally=REC.btally||{}; const k=bkey(pz.bank.cat,pz.bank.word), t=REC.btally[k]||{count:0}; REC.btally[k]={count:t.count+1, last:run.date}; } return; }
+    const k=key(w.r,w.p); const t=REC.tally[k]||{count:0}; REC.tally[k]={count:t.count+1, last:run.date}; });
   REC.savedAt=Date.now();
   lsSet(LS_R,REC); remoteWrite("records",REC);
   clearProgress();
@@ -655,6 +699,7 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("visibilitychange",()=>{ if(document.hidden && S.screen==="room"){ lastSaved=""; saveProgress(); } });
 function start(saved){
+  if(saved && saved.gen) installGen(saved.gen);
   if(saved && saved.screen){ S=Object.assign(fresh(),saved); if(S.screen==="room"){ S.startedAt=null; startTimer(); } }
   render();
   connectCloud();
