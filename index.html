@@ -40,7 +40,7 @@ button{cursor:pointer}
 
 header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:14px}
 .brand{font-family:var(--display);font-size:1.35rem;letter-spacing:.04em}
-.stats{display:flex;gap:16px;font-size:.9rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.stats{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;font-size:.9rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .stats b{color:var(--ink);font-weight:700}
 .rooms{display:flex;gap:6px}
 .rooms span{width:28px;height:28px;border:1px solid #b8a888;display:grid;place-items:center;font-size:.8rem;color:var(--muted);font-family:var(--display)}
@@ -120,10 +120,11 @@ h2{font-family:var(--display);font-weight:400;font-size:1.8rem;margin:0;text-wra
 .bankbtn .meta,.card .meta{font-size:.82rem;color:var(--muted)}
 .dbar{height:4px;background:var(--line)}
 .dbar span{display:block;height:100%;background:var(--green)}
-.authbtn{background:var(--seal);color:#fff;border-color:var(--seal)!important;cursor:pointer;padding:2px 10px}
-.save{font-size:.8rem;border:1px solid var(--line);padding:0 8px;color:var(--muted)}
+
+.save{white-space:nowrap;font-size:.8rem;border:1px solid var(--line);padding:0 8px;color:var(--muted)}
 .card.continue{border-top:4px solid var(--seal)}
 .card .meta,.continue .meta{font-size:.85rem;color:var(--muted)}
+.save.authbtn{background:var(--seal);color:#fff;border-color:var(--seal);cursor:pointer;padding:3px 12px;min-height:30px}
 .history{display:flex;flex-direction:column;border-top:1px solid var(--line)}
 .history div{display:grid;grid-template-columns:1fr auto auto;gap:14px;padding:10px 2px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-size:.95rem}
 .history div span:last-child{color:var(--muted)}
@@ -167,7 +168,7 @@ function header(){
   const dots=(S.screen==="room"||S.screen==="end") ? run.rooms.map((ri,i)=>`<span class="${i<pos||S.screen==="end"?"done":i===pos?"now":""}" title="${esc(ROOMS[ri].title)}">${i+1}</span>`).join("") : "";
   return `<header><div class="brand">규장각 비밀 서고${S.screen==="room"||S.screen==="end"?` · ${esc(run.name)}`:""}</div>
     <div class="rooms" aria-label="방 진행">${dots}</div>
-    <div class="stats"><span>시간 <b id="t">${fmt(now())}</b></span><span>오답 <b>${S.wrongs.length}</b></span><span>힌트 <b>${S.hints}</b></span><span class="save" id="savebadge">${saveLabel()}</span>${authButton()}</div></header>`;
+    <div class="stats">${(S.screen==="room"||S.screen==="end")?`<span>시간 <b id="t">${fmt(now())}</b></span><span>오답 <b>${S.wrongs.length}</b></span><span>힌트 <b>${S.hints}</b></span>`:""}<span class="save" id="savebadge">${saveLabel()}</span>${authButton()}</div></header>`;
 }
 
 function render(){

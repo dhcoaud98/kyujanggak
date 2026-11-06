@@ -2,6 +2,27 @@
 
 수능·공무원 국어·영어 방탈출. 여러 사람이 각자 구글 계정으로 로그인해 기록(이어 하기, 최고 기록, 오답 노트, 정답률)을 남길 수 있는 버전입니다.
 
+![배포 한눈에 보기](docs/00-overview.png)
+
+## 게임 화면 둘러보기
+
+| 첫 화면 | 방탈출 | 자물쇠 열림 |
+|:---:|:---:|:---:|
+| <img src="docs/01-home.png" width="240"> | <img src="docs/02-room.png" width="240"> | <img src="docs/03-lock.png" width="240"> |
+| 관 고르기, 이어 하기, 관별 최고 기록 | 문제를 풀면 단서가 찍힘. 틀린 보기는 줄이 그어짐 | 단서를 모아 현판 자물쇠를 열면 다음 방으로 |
+
+| 문제은행 영역 | 문제은행 풀이 | 결과 |
+|:---:|:---:|:---:|
+| <img src="docs/06-bank.png" width="240"> | <img src="docs/04-drill.png" width="240"> | <img src="docs/05-drill-end.png" width="240"> |
+| 6개 영역, 영역별 누적 정답률 | 10문제씩 무작위. 답하면 바로 해설 | 10문제 더 · 틀린 것만 다시 |
+
+| 누적 오답 노트 |
+|:---:|
+| <img src="docs/07-notes.png" width="240"> |
+| 방탈출·문제은행에서 틀린 문제를 많이 틀린 순서로 |
+
+화면 위쪽 **구글로 로그인**을 누르면 기록이 구글 계정에 저장되어 다른 기기에서도 이어집니다. 로그인하지 않으면 그 브라우저에만 저장됩니다.
+
 ## 파일
 
 | 파일 | 내용 |
@@ -11,6 +32,7 @@
 | `firebase-config.js` | Firebase 설정값을 붙여 넣는 파일 (**꼭 수정**) |
 | `firestore.rules` | 보안 규칙: 각자 자기 기록만 읽고 쓰게 함 |
 | `manifest.json`, `icon-192.png`, `icon-512.png` | 휴대폰 홈 화면 추가용 앱 정보와 아이콘 |
+| `docs/` | 이 안내서에 쓰인 화면 이미지 (게임 동작에는 필요 없음) |
 
 ## 1. Firebase 준비 (약 10분)
 
@@ -28,7 +50,7 @@
 
 1. https://github.com 가입·로그인 → 오른쪽 위 **+ → New repository**
    - 이름: `kyujanggak` → **Public** 선택 → Create repository
-2. 새 저장소 화면에서 **uploading an existing file** 클릭 → 폴더 안 파일 7개(README 포함 8개)를 모두 끌어다 놓기 → **Commit changes**
+2. 새 저장소 화면에서 **uploading an existing file** 클릭 → 폴더 안의 파일과 `docs` 폴더를 모두 끌어다 놓기 → **Commit changes** (폴더째 끌어다 놓으면 `docs` 안의 이미지도 함께 올라감)
 3. 저장소 **Settings → Pages** → Source: **Deploy from a branch** → Branch: `main` / `(root)` → Save
 4. 1~2분 뒤 `https://내깃허브아이디.github.io/kyujanggak/` 에서 게임이 열림
 
