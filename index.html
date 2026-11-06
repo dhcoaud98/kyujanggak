@@ -113,7 +113,7 @@ h2{font-family:var(--display);font-weight:400;font-size:1.8rem;margin:0;text-wra
 .wing h3{margin:0;font-family:var(--display);font-weight:400;font-size:1.6rem}
 .wing p{margin:0 0 6px;font-size:.95rem;color:#5a4d37}
 .wing .meta{font-size:.82rem;color:var(--muted)}
-.wing .row{margin-top:auto}
+.wingact{margin-top:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .bank{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .bankbtn{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--seal);padding:14px 16px;text-align:left;display:flex;flex-direction:column;gap:2px;color:var(--ink)}
 .bankbtn:hover{border-color:var(--ink)}
@@ -251,11 +251,11 @@ function renderIntro(){
     </article>`:""}
     <div class="wings">${RUNS.map(r=>{ const b=(REC.bestBy||{})[r.id]; const pl=PLANS[r.id], n=pl ? pl.length*4 : r.rooms.reduce((k,i)=>k+ROOMS[i].puzzles.length,0);
       return `<article class="wing">
-        <div class="meta">${esc(r.sub)} · 방 ${pl?pl.length:r.rooms.length}개 · ${n}문제 · 매번 새 문제</div>
+        <div class="meta">${esc(r.sub)} · 방 ${pl?pl.length:r.rooms.length}개 · ${n}문제</div>
         <h3>${esc(r.name)}</h3>
         <p>${esc(r.desc)}</p>
         <div class="meta">${b?`최고 기록 ${fmt(b.time)}`:"아직 기록 없음"}</div>
-        <div class="row"><button class="btn${P?" ghost":""}" data-run="${r.id}" data-mode="new">${P&&P.run===r.id?"새 문제로 다시":"입장하기"}</button>${r.random?"":`<button class="btn ghost small" data-run="${r.id}" data-mode="fixed" title="처음 설계된 퍼즐 방으로 풀기">기본 문제</button>`}</div>
+        <div class="wingact"><button class="btn" data-run="${r.id}" data-mode="new">입장하기</button>${r.random?"":`<button class="small-btn" data-run="${r.id}" data-mode="fixed" title="처음 설계된 퍼즐 방으로 풀기">기본 문제로 풀기</button>`}</div>
       </article>`; }).join("")}</div>
   </section>
   ${bankSection()}
